@@ -123,8 +123,9 @@ class BaiscEnvironment:
     
                 
     def isThereAnyObject(self):
-        self.dummy_simulation_steps(10)
-        rgb, depth, _ = self.camera.get_cam_img()
+        self.dummySimulationSteps(10)
+        rgb, depth = self.captureImage(1)
+
         #print ("min RGB = ", rgb.min(), "max RGB = ", rgb.max(), "rgb.avg() = ", np.average(rgb))
         print ("min depth = ", depth.min(), "max depth = ", depth.max())
         if (depth.max()- depth.min() < 0.005):
