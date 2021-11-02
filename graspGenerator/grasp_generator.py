@@ -40,38 +40,16 @@ class GraspGenerator:
 
         self.network = network
 
+        self.pixelToMeter= 0.36 / imgWidth
+
         self.PIX_CONVERSION = 277 * imgWidth/224
 
         self.img_width = imgWidth
         self.IMG_ROTATION = -np.pi * 0.5 
         self.CAM_ROTATION = 0
-        self.MAX_GRASP = 0.085
-        # PIX_CONVERSION = 277
+        self.MAX_GRASP = 0.1
         self.DIST_BACKGROUND = 1.115
-        # MAX_GRASP = 0.085
-
-        # print (self.img_width)
-
-        # Get rotation matrix
-        img_center = self.img_width / 2 - 0.5
-        self.img_to_cam = self.get_transform_matrix(-img_center/self.PIX_CONVERSION,
-                                                    img_center/self.PIX_CONVERSION,
-                                                    0,
-                                                    self.IMG_ROTATION)
-
         
-
-
-        self.cam_to_robot_base = self.get_transform_matrix(camera.x, camera.y, camera.z, self.CAM_ROTATION)
-
-    def get_transform_matrix(self, x, y, z, rot):
-        return np.array([
-                        [np.cos(rot),   -np.sin(rot),   0,  x],
-                        [np.sin(rot),   np.cos(rot),    0,  y],
-                        [0,             0,              1,  z],
-                        [0,             0,              0,  1]
-                        ])
-
     def grasp_to_robot_frame(self, grasp, depth_img):
         """
         return: x, y, z, roll, opening length gripper, object height
@@ -90,27 +68,17 @@ class GraspGenerator:
         z_p = np.amin(depth_values)
 
         # Convert pixels to meters
-        x_p /= self.PIX_CONVERSION
-        y_p /= self.PIX_CONVERSION
+        x_p *= self.pixelToMeter
+        y_p *= self.pixelToMeter
         z_p = self.far * self.near / (self.far - (self.far - self.near) * z_p)
-
+        
 
         img_center = self.img_width / 2 - 0.5
-        imgOriginRelative = np.array([-img_center/self.PIX_CONVERSION,img_center/self.PIX_CONVERSION,0])
+        imgOriginRelative = np.array([-img_center*self.pixelToMeter,img_center*self.pixelToMeter,0])
         imgWorldOrigin  = p.multiplyTransforms(self.cameraPos, p.getQuaternionFromEuler([0,0,0]), imgOriginRelative, p.getQuaternionFromEuler([0,0,self.IMG_ROTATION]))
-        robot_xyz = p.multiplyTransforms(imgWorldOrigin[0],imgWorldOrigin[1], np.array([x_p,y_p,-z_p]), p.getQuaternionFromEuler([0,0,0]))
+        robot_xyz = p.multiplyTransforms(imgWorldOrigin[0],imgWorldOrigin[1], np.array([x_p,y_p,-z_p]), p.getQuaternionFromEuler([0,0,grasp.angle]))
 
-        # # Convert image space to camera's 3D space
-        # img_xyz = np.array([x_p, y_p, -z_p, 1])
-        # cam_space = np.matmul(self.img_to_cam, img_xyz)
-
-        # # Convert camera's 3D space to robot frame of reference
-        # robot_frame_ref = np.matmul(self.cam_to_robot_base, cam_space)
-
-        # Change direction of the angle and rotate by alpha rad
-        roll = grasp.angle * -1 + (self.IMG_ROTATION)
-        if roll < -np.pi / 2:
-            roll += np.pi
+        roll = p.getEulerFromQuaternion(robot_xyz[1])[2]
 
         # Covert pixel width to gripper width
         opening_length = (grasp.length / int(self.MAX_GRASP *
@@ -118,10 +86,7 @@ class GraspGenerator:
 
         obj_height = self.DIST_BACKGROUND - z_p
 
-
-        robot_frame_ref = robot_xyz[0]
-        # return x, y, z, roll, opening length gripper
-        return robot_frame_ref[0], robot_frame_ref[1], robot_frame_ref[2], roll, opening_length, obj_height
+        return robot_xyz[0][0], robot_xyz[0][1], robot_xyz[0][2], roll, opening_length, obj_height
 
     def predict(self, rgb, depth, n_grasps=1, show_output=False):
 

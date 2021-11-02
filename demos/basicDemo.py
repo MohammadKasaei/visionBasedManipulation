@@ -45,10 +45,10 @@ class GraspControl():
         2- rank grasp points: 
             select the best one (x,y,z)
             fail handeler:
-                select another gp
+                select another gp : partially done
 
         3- add a function for updating state : DONE 
-        4- TF camera  
+        4- TF camera: DONE
         5- camera class should be merged with environment
 
     """
@@ -131,7 +131,7 @@ class GraspControl():
         elif self.gState  == "MoveOnTopofBox":
             targetPos    = np.array(self.gPos[:])
             targetPos[2] = self.GRIPPER_MOVING_HEIGHT
-            self.env.moveGripper(0.1)
+            self.env.moveGripper(0.2)
             targetOrn    = p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(np.array(targetPos)-eeState[0])
@@ -163,7 +163,7 @@ class GraspControl():
         elif self.gState  == "Grasp":
 
             succes_grasp = False
-            self.env.moveGripper(0.02)
+            self.env.moveGripper(0.01)
             time.sleep(0.025)
             grasped_id = self.env.checkGraspedID()
             if len(grasped_id) >= 1:
@@ -172,7 +172,7 @@ class GraspControl():
            
             if succes_grasp:
                 self.cnt += 1
-                if self.cnt>30:
+                if self.cnt>100:
                     self.updateState("Pickup")   
             else:
                 self.cnt = 0
@@ -184,7 +184,7 @@ class GraspControl():
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(targetPos-eeState[0])
             if (dist<0.14):
-               if (self.cnt>10):
+               if (self.cnt>100):
                  self.updateState("MoveObjectIntoTarget")   
                else:
                  self.cnt += 1
@@ -234,8 +234,8 @@ if __name__ == '__main__':
             sys.path.append('trained_models/GR_ConvNet')
   
     env = BaiscEnvironment(GUI = True,img_size= IMG_SIZE)
-    env.createTempBox(0.45, 1)
-    env.creatPileofTube(10)
+    env.createTempBox(0.35, 1)
+    env.creatPileofTube(5)
     env.dummySimulationSteps(300)
     
     gc = GraspControl(env,network_model) 

@@ -23,7 +23,7 @@ class BaiscEnvironment:
         self.vis = GUI
         self.debug = debug
 
-        self.camPos = [0.05, -0.52, 1.9]
+        self.camPos = [0.05, -0.52, 1.3]
         self.camTarget = [self.camPos[0], self.camPos[1], 0.785]
         IMG_SIZE = img_size
         self.camera = Camera(cam_pos=self.camPos, cam_target= self.camTarget, near = 0.2, far = 2, size= [IMG_SIZE, IMG_SIZE], fov=40)
