@@ -21,7 +21,9 @@ class GraspControl():
         self.gPos = np.array([0,0,0])
         self.gOrn = np.array([0,np.pi/2,0])
         self.gWidth = 0.1
-        self.gg = GraspGenerator(network_path, self.env.camera, depth_radius, self.env.camera.width, network_model)
+        self.depth_radius = 2
+
+        self.gg = GraspGenerator(network_path, self.env.camera, self.depth_radius, self.env.camera.width, network_model)
         self.EnableGraspingProcess = False    
 
         self.TIMEOUT_MS = {
@@ -37,8 +39,6 @@ class GraspControl():
             }
 
     
-    
-    
     """
      TODO:
         1- state timeout: DONE
@@ -50,7 +50,7 @@ class GraspControl():
         3- add a function for updating state : DONE 
         4- TF camera  
         5- camera class should be merged with environment
-        
+
     """
 
     def updateState(self,newState):
@@ -58,7 +58,10 @@ class GraspControl():
         self.gState  = newState
         self.lastStateUpdate =  self.getTimeMs()
         self.cnt = 0
-        print(self.pgState,self.gState,self.lastStateUpdate)
+
+        print(f"Prev: {self.pgState:20}\t Current: {self.gState:20}\t Time: {self.lastStateUpdate:20}")
+        print ("-----------------------------------------------------------------------------------------------")
+
 
     def timeoutControl(self):
         if (self.gState is not "Stop") and (self.getTimeMs() - self.lastStateUpdate > self.TIMEOUT_MS[self.gState]):
@@ -76,7 +79,7 @@ class GraspControl():
         return grasp
 
     def getTimeMs(self):
-           return round(time.time()*1000)
+        return round(time.time()*1000)
          
     def graspStateMachine(self):
         self.timeoutControl()
@@ -229,8 +232,7 @@ if __name__ == '__main__':
             IMG_SIZE = 224
             network_path = 'trained_models/GR_ConvNet/cornell-randsplit-rgbd-grconvnet3-drop1-ch32/epoch_19_iou_0.98'
             sys.path.append('trained_models/GR_ConvNet')
-    depth_radius = 2
-
+  
     env = BaiscEnvironment(GUI = True,img_size= IMG_SIZE)
     env.createTempBox(0.45, 1)
     env.creatPileofTube(10)

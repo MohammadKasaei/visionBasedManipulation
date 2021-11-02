@@ -127,7 +127,7 @@ class BaiscEnvironment:
         rgb, depth = self.captureImage(1)
 
         #print ("min RGB = ", rgb.min(), "max RGB = ", rgb.max(), "rgb.avg() = ", np.average(rgb))
-        print ("min depth = ", depth.min(), "max depth = ", depth.max())
+        # print ("min depth = ", depth.min(), "max depth = ", depth.max())
         if (depth.max()- depth.min() < 0.005):
             return False
         else:

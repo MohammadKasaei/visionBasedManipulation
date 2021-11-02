@@ -4,6 +4,7 @@ from numpy.lib.npyio import save
 import torch.utils.data
 from PIL import Image
 from datetime import datetime
+import pybullet as p
 
 from network.hardware.device import get_device
 from network.inference.post_process import post_process_output
@@ -33,6 +34,7 @@ class GraspGenerator:
         self.near = camera.near
         self.far = camera.far
         self.depth_r = depth_radius
+        self.cameraPos = np.array([camera.x,camera.y,camera.z])
         
         self.fig = plt.figure(figsize=(10, 10))
 
@@ -56,6 +58,10 @@ class GraspGenerator:
                                                     img_center/self.PIX_CONVERSION,
                                                     0,
                                                     self.IMG_ROTATION)
+
+        
+
+
         self.cam_to_robot_base = self.get_transform_matrix(camera.x, camera.y, camera.z, self.CAM_ROTATION)
 
     def get_transform_matrix(self, x, y, z, rot):
@@ -88,12 +94,18 @@ class GraspGenerator:
         y_p /= self.PIX_CONVERSION
         z_p = self.far * self.near / (self.far - (self.far - self.near) * z_p)
 
-        # Convert image space to camera's 3D space
-        img_xyz = np.array([x_p, y_p, -z_p, 1])
-        cam_space = np.matmul(self.img_to_cam, img_xyz)
 
-        # Convert camera's 3D space to robot frame of reference
-        robot_frame_ref = np.matmul(self.cam_to_robot_base, cam_space)
+        img_center = self.img_width / 2 - 0.5
+        imgOriginRelative = np.array([-img_center/self.PIX_CONVERSION,img_center/self.PIX_CONVERSION,0])
+        imgWorldOrigin  = p.multiplyTransforms(self.cameraPos, p.getQuaternionFromEuler([0,0,0]), imgOriginRelative, p.getQuaternionFromEuler([0,0,self.IMG_ROTATION]))
+        robot_xyz = p.multiplyTransforms(imgWorldOrigin[0],imgWorldOrigin[1], np.array([x_p,y_p,-z_p]), p.getQuaternionFromEuler([0,0,0]))
+
+        # # Convert image space to camera's 3D space
+        # img_xyz = np.array([x_p, y_p, -z_p, 1])
+        # cam_space = np.matmul(self.img_to_cam, img_xyz)
+
+        # # Convert camera's 3D space to robot frame of reference
+        # robot_frame_ref = np.matmul(self.cam_to_robot_base, cam_space)
 
         # Change direction of the angle and rotate by alpha rad
         roll = grasp.angle * -1 + (self.IMG_ROTATION)
@@ -106,6 +118,8 @@ class GraspGenerator:
 
         obj_height = self.DIST_BACKGROUND - z_p
 
+
+        robot_frame_ref = robot_xyz[0]
         # return x, y, z, roll, opening length gripper
         return robot_frame_ref[0], robot_frame_ref[1], robot_frame_ref[2], roll, opening_length, obj_height
 
