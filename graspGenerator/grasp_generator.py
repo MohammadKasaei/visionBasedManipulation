@@ -28,9 +28,6 @@ class GraspGenerator:
             self.net = torch.load(net_path, map_location='cpu')
             self.device = get_device(force_cpu=True)
 
-        # print (self.net)
-
-        
         self.near = camera.near
         self.far = camera.far
         self.depth_r = depth_radius
@@ -40,7 +37,7 @@ class GraspGenerator:
 
         self.network = network
 
-        self.pixelToMeter= 0.36 / imgWidth
+        self.pixelToMeter= 0.355 / imgWidth
 
         self.PIX_CONVERSION = 277 * imgWidth/224
 

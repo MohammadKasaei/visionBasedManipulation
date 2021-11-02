@@ -526,9 +526,9 @@ class BaiscEnvironment:
 
             p.changeDynamics(obj_id, 
                             -1,
-                            spinningFriction = 0.8,
-                            rollingFriction  = 0.8,
-                            linearDamping    = 0.1)
+                            spinningFriction = 0.4,
+                            rollingFriction  = 0.4,
+                            linearDamping    = 0.0)
             self.tubeObj.append(obj_id)
 
         self.obj_ids = self.tubeObj    
