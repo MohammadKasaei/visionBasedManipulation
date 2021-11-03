@@ -2,7 +2,7 @@ import time
 
 from cv2 import getTrackbarPos
 from environment.basicEnv import BaiscEnvironment
-from environment.utilities import Camera
+from environment.camera.camera import Camera
 from graspGenerator.grasp_generator import GraspGenerator
 
 import pybullet as p
@@ -12,10 +12,24 @@ import sys
 class GraspControl():
 
     def __init__(self,env,network_model):
+
         self.env = env
-        self.GRIPPER_MOVING_HEIGHT = 1.2
-        self.GRIP_REDUCTION = 0.3
+        if self.env.robotType == "UR5":
+            self.GRIPPER_MOVING_HEIGHT = 1.2
+            self.GRIP_REDUCTION = 0.3
+            self.GRIPPER_INIT_ORN = [-np.pi*0.25, np.pi/2, 0.0]
+        elif self.env.robotType == "Panda":
+            self.GRIPPER_MOVING_HEIGHT = 1.2
+            self.GRIP_REDUCTION = 0.3
+            self.GRIPPER_INIT_ORN = [np.pi, 0, 0]
+        else:
+            self.GRIPPER_MOVING_HEIGHT = 1.3
+            self.GRIP_REDUCTION = 0.3
+            self.GRIPPER_INIT_ORN = [0, 0, 0]
+        
+        
         self.gState = "Stop"
+        self.lastStateUpdate = self.getTimeMs()
         self.updateState("Stop")
         self.pgState = self.gState 
         self.gPos = np.array([0,0,0])
@@ -41,27 +55,28 @@ class GraspControl():
     
     """
      TODO:
-        1- state timeout: DONE
-        2- rank grasp points: 
+        
+        1- rank grasp points: 
             select the best one (x,y,z)
             fail handeler:
                 select another gp : partially done
-
-        3- add a function for updating state : DONE 
-        4- TF camera: DONE
-        5- camera class should be merged with environment
+        2- no grasp detection -> change the env
+           > use next grasp point once it fails two times
+        3- multiple robot type: DONE
+        4- visualize gripper 
 
     """
 
     def updateState(self,newState):
         self.pgState = self.gState
         self.gState  = newState
+        print(f"Prev: {self.pgState:20}\t Current: {self.gState:20}\t Time: {self.getTimeMs()-self.lastStateUpdate:20}")
+        print ("-----------------------------------------------------------------------------------------------")
+
         self.lastStateUpdate =  self.getTimeMs()
         self.cnt = 0
 
-        print(f"Prev: {self.pgState:20}\t Current: {self.gState:20}\t Time: {self.lastStateUpdate:20}")
-        print ("-----------------------------------------------------------------------------------------------")
-
+     
 
     def timeoutControl(self):
         if (self.gState is not "Stop") and (self.getTimeMs() - self.lastStateUpdate > self.TIMEOUT_MS[self.gState]):
@@ -81,6 +96,17 @@ class GraspControl():
     def getTimeMs(self):
         return round(time.time()*1000)
          
+    def getTargetOrientation(self):
+        
+        if self.env.robotType == "UR5":
+            return   p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0]) 
+        elif self.env.robotType == "Panda":
+            return   p.getQuaternionFromEuler([-np.pi, 0, self.gOrn[0]]) 
+            
+        
+
+
+
     def graspStateMachine(self):
         self.timeoutControl()
         eeState   = self.env.getEEState()
@@ -92,10 +118,10 @@ class GraspControl():
         elif self.gState  == "GoHome":
             targetPos    = self.env.TARGET_ZONE_POS[:]
             targetPos[2] = self.GRIPPER_MOVING_HEIGHT
-            targetOrn    = p.getQuaternionFromEuler([-np.pi*0.25, np.pi/2, 0.0])
+            targetOrn    = p.getQuaternionFromEuler(self.GRIPPER_INIT_ORN)
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(np.array(targetPos)-eeState[0])
-            if (dist<0.1):
+            if (dist<0.15):
                if (self.cnt>10):
                 if (self.EnableGraspingProcess and self.env.isThereAnyObject()):
                     self.updateState("GraspDetection")
@@ -122,8 +148,9 @@ class GraspControl():
                 env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=0.1)
                 grasp = self.selectBestGraspPoint(grasps)
 
-                x, y, z, roll, opening_len, obj_height = grasp #grasps[0]
+                x, y, z, roll, opening_len, obj_height = grasp 
                 self.gPos = [x, y, np.clip(z+self.env.finger_length, *self.env.ee_position_limit[2])]
+
                 self.gOrn = [roll,0,0]
                 self.updateState("MoveOnTopofBox")
 
@@ -132,7 +159,7 @@ class GraspControl():
             targetPos    = np.array(self.gPos[:])
             targetPos[2] = self.GRIPPER_MOVING_HEIGHT
             self.env.moveGripper(0.2)
-            targetOrn    = p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
+            targetOrn    = self.getTargetOrientation() 
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(np.array(targetPos)-eeState[0])
             if (dist<0.05):
@@ -147,17 +174,17 @@ class GraspControl():
             
         elif self.gState  == "ReadyToGrasp":
             targetPos    = np.array(self.gPos[:])
-            targetOrn    = p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
+            targetOrn    = self.getTargetOrientation() 
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(targetPos-eeState[0])
-            if (dist<0.14):
+            thr = 0.14 if self.env.robotType == "UR5" else 0.02
+            if (dist < thr): 
                if (self.cnt>20):
                 self.updateState("Grasp")
                else:
                 self.cnt += 1
             else:
                 self.cnt = 0
-
 
 
         elif self.gState  == "Grasp":
@@ -172,7 +199,7 @@ class GraspControl():
            
             if succes_grasp:
                 self.cnt += 1
-                if self.cnt>100:
+                if self.cnt>50:
                     self.updateState("Pickup")   
             else:
                 self.cnt = 0
@@ -180,7 +207,7 @@ class GraspControl():
         elif self.gState  == "Pickup":
 
             targetPos    = np.array([self.gPos[0],self.gPos[1], self.GRIPPER_MOVING_HEIGHT])
-            targetOrn    = p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
+            targetOrn    = self.getTargetOrientation() 
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(targetPos-eeState[0])
             if (dist<0.14):
@@ -194,7 +221,7 @@ class GraspControl():
         elif self.gState  == "MoveObjectIntoTarget":
             z = self.GRIPPER_MOVING_HEIGHT
             targetPos    = np.array([self.env.TARGET_ZONE_POS[0],self.env.TARGET_ZONE_POS[1],z])
-            targetOrn    = p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
+            targetOrn    = self.getTargetOrientation() 
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(targetPos-eeState[0])
             if (dist<0.15):
@@ -203,7 +230,7 @@ class GraspControl():
         elif self.gState  == "DropObject":
             z = self.env.TARGET_ZONE_POS[2]+0.1
             targetPos    = np.array([self.env.TARGET_ZONE_POS[0],self.env.TARGET_ZONE_POS[1],z])
-            targetOrn    = p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
+            targetOrn    = self.getTargetOrientation()#p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0])
             self.env.moveEE(targetPos, targetOrn)
             dist = np.linalg.norm(targetPos-eeState[0])
             if (dist<0.15):
@@ -233,13 +260,13 @@ if __name__ == '__main__':
             network_path = 'trained_models/GR_ConvNet/cornell-randsplit-rgbd-grconvnet3-drop1-ch32/epoch_19_iou_0.98'
             sys.path.append('trained_models/GR_ConvNet')
   
-    env = BaiscEnvironment(GUI = True,img_size= IMG_SIZE)
+    env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
     env.createTempBox(0.35, 1)
-    env.creatPileofTube(5)
-    env.dummySimulationSteps(300)
+    env.creatPileofTube(30)
+    env.dummySimulationSteps(500)
     
     gc = GraspControl(env,network_model) 
-    gc.gState = "GoHome"
+    gc.updateState("GoHome")
     gc.EnableGraspingProcess = True
     for _ in range(50000):
         gc.graspStateMachine()

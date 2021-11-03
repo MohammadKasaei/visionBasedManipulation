@@ -22,6 +22,12 @@
             "type": "python",
             "request": "launch",
             "module": "demos.basicDemo"
+        },
+        {
+            "name": "Python: BaiscDualDemo",
+            "type": "python",
+            "request": "launch",
+            "module": "demos.basicDualDemo"
         }
 
     ]

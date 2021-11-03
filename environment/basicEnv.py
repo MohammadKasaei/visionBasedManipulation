@@ -1,4 +1,5 @@
-from environment.utilities import setup_sisbot, Camera
+from environment.utilities import setupUR5,setupPanda
+from environment.camera.camera import Camera
 import math
 import time
 import numpy as np
@@ -15,13 +16,15 @@ class BaiscEnvironment:
     GRIPPER_GRASPED_LIFT_HEIGHT = 1.4
     TARGET_ZONE_POS = [0.7, 0.0, 0.685]
     SIMULATION_STEP_DELAY = 0.0005 #speed of simulator - the lower the fatser
-    FINGER_LENGTH = 0.04 #0.06
+    # FINGER_LENGTH = 0.04 #0.06
     Z_TABLE_TOP = 0.785
     GRIP_REDUCTION = 0.3
 
-    def __init__(self, GUI=False, debug=False, gripper_type='85', finger_length=0.02,img_size = 220,simulationStepTime=0.01) -> None:
+    def __init__(self, GUI=False, debug=False, robotType ="UR5", img_size = 220,simulationStepTime=0.01) -> None:
         self.vis = GUI
         self.debug = debug
+
+        self.robotType = robotType #"Panda" #UR5
 
         self.camPos = [0.05, -0.52, 1.3]
         self.camTarget = [self.camPos[0], self.camPos[1], 0.785]
@@ -33,12 +36,13 @@ class BaiscEnvironment:
         self.obj_positions = []
         self.obj_orientations = []
 
+
+        gripper_type='85'
         if gripper_type not in ('85', '140'):
             raise NotImplementedError(
                 'Gripper %s not implemented.' % gripper_type)
         self.gripper_type = gripper_type
-        self.finger_length = finger_length
-
+        
         # define environment
         self.physicsClient = p.connect(p.GUI if self.vis else p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -63,30 +67,64 @@ class BaiscEnvironment:
                                       [-0.7, -0.36, 0.0],
                                       p.getQuaternionFromEuler([0, 0, 0]),
                                       useFixedBase=True)
-        self.robot_id = p.loadURDF('environment/urdf/ur5_robotiq_%s.urdf' % gripper_type,
+
+        if (self.robotType == "UR5"):
+            self.robot_id = p.loadURDF('environment/urdf/ur5_robotiq_%s.urdf' % gripper_type,
                                    [0, 0, 0.0],  # StartPosition
                                    p.getQuaternionFromEuler([0, 0, 0]),  # StartOrientation
                                    useFixedBase=True,
                                    flags=p.URDF_USE_INERTIA_FROM_FILE)
-        self.joints, self.controlGripper, self.controlJoints, self.mimicParentName =\
-            setup_sisbot(p, self.robot_id, gripper_type)
-        
+                              
+            self.joints, self.controlGripper, self.controlJoints, self.mimicParentName =\
+                setupUR5(p, self.robot_id, gripper_type)
+            
+            self.eef_id = 7  # ee_link 
+            self.finger_length = 0.02 # should be changed based on gripper
 
-        self.eef_id = 7  # ee_link
 
-        # Add force sensors
-        p.enableJointForceTorqueSensor(self.robot_id, self.joints['left_inner_finger_pad_joint'].id)
-        p.enableJointForceTorqueSensor(self.robot_id, self.joints['right_inner_finger_pad_joint'].id)
+            # Add force sensors
+            p.enableJointForceTorqueSensor(self.robot_id, self.joints['left_inner_finger_pad_joint'].id)
+            p.enableJointForceTorqueSensor(self.robot_id, self.joints['right_inner_finger_pad_joint'].id)
 
-        # Change the friction of the gripper
-        p.changeDynamics(self.robot_id, self.joints['left_inner_finger_pad_joint'].id, lateralFriction=1)
-        p.changeDynamics(self.robot_id, self.joints['right_inner_finger_pad_joint'].id, lateralFriction=1)
-        
-        # Setup some Limit
-        self.gripper_open_limit = (0.0, 0.1)
-        self.ee_position_limit = ((-0.8, 0.8),
-                                  (-0.8, 0.8),
-                                  (0.785, 1.4))
+            # Change the friction of the gripper
+            p.changeDynamics(self.robot_id, self.joints['left_inner_finger_pad_joint'].id, lateralFriction=1)
+            p.changeDynamics(self.robot_id, self.joints['right_inner_finger_pad_joint'].id, lateralFriction=1)
+      
+            # Setup some Limit
+            self.gripper_open_limit = (0.0, 0.1)
+            self.ee_position_limit = ((-0.8, 0.8),
+                                    (-0.8, 0.8),
+                                    (0.785, 1.4))
+            
+        else:
+            self.robot_id = p.loadURDF("franka_panda/panda.urdf",
+                                   [0, 0, 0.76],  # StartPosition
+                                   p.getQuaternionFromEuler([0, 0, 0]),  # StartOrientation
+                                   useFixedBase=True,
+                                   flags=p.URDF_USE_INERTIA_FROM_FILE)
+            self.joints, self.controlGripper, self.controlJoints =\
+            setupPanda(p, self.robot_id, gripper_type)
+            self.eef_id = 11 #8 # ee_link
+            self.finger_length = -0.025
+
+            # Add force sensors
+            p.enableJointForceTorqueSensor(self.robot_id, self.joints['panda_finger_joint1'].id)
+            p.enableJointForceTorqueSensor(self.robot_id, self.joints['panda_finger_joint2'].id)
+
+            # Change the friction of the gripper
+            p.changeDynamics(self.robot_id, self.joints['panda_finger_joint1'].id, lateralFriction=1)
+            p.changeDynamics(self.robot_id, self.joints['panda_finger_joint2'].id, lateralFriction=1)
+
+            # Setup some Limit
+            self.gripper_open_limit = (0.0, 0.1)
+            self.ee_position_limit = ((-0.8, 0.8),
+                                    (-0.8, 0.8),
+                                    (0.73, 1.4))
+      
+
+
+
+
         self.resetRobot()
         self.ee_pp   = p.getLinkState(self.robot_id,self.eef_id)[0]
         self.ee_orn  = p.getEulerFromQuaternion(p.getLinkState(self.robot_id,self.eef_id)[1])   
@@ -178,8 +216,16 @@ class BaiscEnvironment:
                   max_wait_epochs)
 
     def resetRobot(self):
-        user_parameters = (0, -1.5446774605904932, 1.54, -1.54,
-                           -1.5707970583733368, 0.0009377758247187636, 0.085)
+
+        if self.robotType == "UR5":
+            user_parameters = (0, -1.544, 1.54, -1.54,-1.570, 0.000, 0.085)
+        
+        elif self.robotType == "Panda":
+            user_parameters = (0.98, 0.458, 0.31, -2.24, -0.30+np.pi/2, 2.66, 2.32, 0.02, 0.02)
+        
+        else:
+            user_parameters = (0.98, 0.458, 0.31, -2.24, -0.30+np.pi/2, 2.66, 2.32, 0.02, 0.02)
+      
         for _ in range(60):
             for i, name in enumerate(self.controlJoints):
                 
@@ -192,6 +238,9 @@ class BaiscEnvironment:
                 
             self.controlGripper(controlMode=p.POSITION_CONTROL, targetPosition=0.085)
             self.stepSimulation()
+        
+
+
  
     def goHome(self):
         y_orn = p.getQuaternionFromEuler([-np.pi*0.25, np.pi/2, 0.0])
@@ -222,9 +271,13 @@ class BaiscEnvironment:
         return False
 
     def checkGraspedID(self):
-        left_index = self.joints['left_inner_finger_pad_joint'].id
-        right_index = self.joints['right_inner_finger_pad_joint'].id
-
+        if (self.robotType == "UR5"):
+            left_index = self.joints['left_inner_finger_pad_joint'].id
+            right_index = self.joints['right_inner_finger_pad_joint'].id
+        else:
+            left_index = self.joints['panda_finger_joint1'].id
+            right_index = self.joints['panda_finger_joint2'].id
+     
         contact_left = p.getContactPoints(bodyA=self.robot_id, linkIndexA=left_index)
         contact_right = p.getContactPoints(bodyA=self.robot_id, linkIndexA=right_index)
         contact_ids = set(item[2] for item in contact_left +contact_right if item[2] in self.obj_ids)
@@ -276,33 +329,13 @@ class BaiscEnvironment:
 
     def moveGripper(self, gripper_opening_length: float, step: int = 1):
 
-        gripper_opening_length = np.clip(
-            gripper_opening_length, *self.gripper_open_limit)
-        gripper_opening_angle = 0.715 - \
-            math.asin((gripper_opening_length - 0.010) / 0.1143)  # angle calculation
+        gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)
+        gripper_opening_angle = 0.715 - math.asin((gripper_opening_length - 0.010) / 0.1143)  # angle calculation
             
         for _ in range(step):
-            self.controlGripper(controlMode=p.POSITION_CONTROL,
-                                targetPosition=gripper_opening_angle)
+            self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_angle)
 
             self.stepSimulation()
-
-    def autoCloseGripper(self, step: int = 120, check_contact: bool = False) -> bool:
-        # Get initial gripper open position
-        initial_position = p.getJointState(
-            self.robot_id, self.joints[self.mimicParentName].id)[0]
-        initial_position = math.sin(0.715 - initial_position) * 0.1143 + 0.010
-        for step_idx in range(1, step):
-            current_target_open_length = initial_position - step_idx / step * initial_position
-
-            self.moveGripper(current_target_open_length, 1)
-            if current_target_open_length < 1e-5:
-                return False
-
-            # time.sleep(1 / 120)
-            if check_contact and self.GripperContact():
-                return True
-        return False
 
     def calcZOffset(self, gripper_opening_length: float):
         gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)
@@ -524,11 +557,11 @@ class BaiscEnvironment:
             for _ in range(100):
                 p.stepSimulation()
 
-            p.changeDynamics(obj_id, 
-                            -1,
-                            spinningFriction = 0.4,
-                            rollingFriction  = 0.4,
-                            linearDamping    = 0.0)
+            # p.changeDynamics(obj_id, 
+            #                 -1,
+            #                 spinningFriction = 0.4,
+            #                 rollingFriction  = 0.4,
+            #                 linearDamping    = 0.0)
             self.tubeObj.append(obj_id)
 
         self.obj_ids = self.tubeObj    
@@ -549,6 +582,7 @@ class BaiscEnvironment:
         p.removeUserDebugItem(camLinez)
     
     def getEEState(self):
+
         return p.getLinkState(self.robot_id,self.eef_id)
         
 
@@ -559,29 +593,46 @@ class BaiscEnvironment:
         x = np.clip(x, *self.ee_position_limit[0])
         y = np.clip(y, *self.ee_position_limit[1])
         z = np.clip(z, *self.ee_position_limit[2])
-        still_open_flag_ = True  # Hot fix
-        
         
         for _ in range(max_step):
             # apply IK
             eeState = self.getEEState()
             self.ee_pp   = eeState[0]#p.getLinkState(self.robot_id,self.eef_id)[0]
             self.ee_orn  = p.getEulerFromQuaternion(eeState[1])
-            xc,yc,zc = 0.9*np.array(self.ee_pp)+0.1*np.array([x,y,z])
+            xc,yc,zc = 0.8*np.array(self.ee_pp)+0.2*np.array([x,y,z])
 
-            
-            joint_poses = p.calculateInverseKinematics(self.robot_id, self.eef_id, [xc, yc, zc], orn,
-                                                       maxNumIterations=100
-                                                       )
-            # Filter out the gripper
-            for i, name in enumerate(self.controlJoints[:-1]):
-                joint = self.joints[name]
-                pose = joint_poses[i]
-                # control robot end-effector
-                p.setJointMotorControl2(self.robot_id, joint.id, p.POSITION_CONTROL,
-                                        targetPosition=pose, force=joint.maxForce,
-                                        maxVelocity=joint.maxVelocity if custom_velocity is None else custom_velocity * (i+1))
+            # self.updateEyeInHandCamerPos()
 
+            if self.robotType == "UR5":
+                joint_poses = p.calculateInverseKinematics(self.robot_id, self.eef_id, [xc, yc, zc], orn,
+                                                        maxNumIterations=100
+                                                        )
+                # Filter out the gripper
+                for i, name in enumerate(self.controlJoints[:-1]):
+                    joint = self.joints[name]
+                    pose = joint_poses[i]
+                    # control robot end-effector
+                    p.setJointMotorControl2(self.robot_id, joint.id, p.POSITION_CONTROL,
+                                            targetPosition=pose, force=joint.maxForce,
+                                            maxVelocity=joint.maxVelocity if custom_velocity is None else custom_velocity * (i+1))
+
+            else:
+                pandaNumDofs = 7
+
+                ll = [-7]*pandaNumDofs
+                #upper limits for null space (todo: set them to proper range)
+                ul = [7]*pandaNumDofs
+                #joint ranges for null space (todo: set them to proper range)
+                jr = [7]*pandaNumDofs
+                #restposes for null space
+                jointPositions=[0.98, 0.458, 0.31, -2.24, -0.30, 2.66, 2.32, 0.02, 0.02]
+                rp = jointPositions
+                joint_poses = p.calculateInverseKinematics(self.robot_id,self.eef_id, [xc, yc, zc], orn, ll, ul,
+                    jr, rp, maxNumIterations=20)
+                for i in range(pandaNumDofs):
+                     p.setJointMotorControl2(self.robot_id, i, p.POSITION_CONTROL, joint_poses[i],force=5 * 240.)
+    
+           
             self.stepSimulation()     
             
             # if try_close_gripper and still_open_flag_ and not self.GripperContact():
