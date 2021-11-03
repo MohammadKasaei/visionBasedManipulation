@@ -261,6 +261,7 @@ if __name__ == '__main__':
             sys.path.append('trained_models/GR_ConvNet')
   
     env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
+    #env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
     env.createTempBox(0.35, 1)
     env.creatPileofTube(5)
     env.dummySimulationSteps(500)
