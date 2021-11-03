@@ -262,7 +262,7 @@ if __name__ == '__main__':
   
     env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
     env.createTempBox(0.35, 1)
-    env.creatPileofTube(30)
+    env.creatPileofTube(5)
     env.dummySimulationSteps(500)
     
     gc = GraspControl(env,network_model) 
