@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: DataSetGenerator",
+            "type": "python",
+            "request": "launch",
+            "module": "demos.testDataSetGenerator"
+        },
+        {
             "name": "Python: GraspTest",
             "type": "python",
             "request": "launch",

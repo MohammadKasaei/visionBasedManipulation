@@ -265,30 +265,43 @@ if __name__ == '__main__':
             sys.path.append('trained_models/GR_ConvNet')
   
     depth_radius = 2
-    env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
-    # env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
+    # env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
+    env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
+    
     env.createTempBox(0.35, 1)
     env.updateBackgroundImage(1)
     
     gg = GraspGenerator(network_path, env.camera, depth_radius, env.camera.width, network_model)
-    env.creatPileofTube(100)
-   
-    for _ in range(100):
-        env.dummySimulationSteps(50)
-        rgb ,depth = env.captureImage(1)    
-        number_of_predict = 1
-        output = False
-        grasps, save_name = gg.predict_grasp( rgb, depth, n_grasps=number_of_predict, show_output=output)
-        print(grasps)
-        if (grasps == []):
-            print ("can not predict any grasp point")
-        else:
-            env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=1)   
+    env.creatPileofTube(1)
+    env.dummySimulationSteps(100)
 
-        env.dummySimulationSteps(50)
-        # env.removeAllObject()
-        env.shuffleObjects(env.obj_ids)
-        env.dummySimulationSteps(500)
+    for _ in range(10000):
+        pos,orn = p.getBasePositionAndOrientation(env.obj_ids[0])
+        pos = np.array(pos)
+        orn = np.array(orn)
+        pos[2] += 0.15 #env.Z_TABLE_TOP
+        
+        orn = p.getQuaternionFromEuler([0, np.pi/2, orn[2]-np.pi/2])
+        env.moveEE(pos,orn,max_step=1)
+
+
+
+    # for _ in range(100):
+    #     env.dummySimulationSteps(50)
+    #     rgb ,depth = env.captureImage(1)    
+    #     number_of_predict = 1
+    #     output = False
+    #     grasps, save_name = gg.predict_grasp( rgb, depth, n_grasps=number_of_predict, show_output=output)
+    #     print(grasps)
+    #     if (grasps == []):
+    #         print ("can not predict any grasp point")
+    #     else:
+    #         env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=1)   
+
+    #     env.dummySimulationSteps(50)
+    #     # env.removeAllObject()
+    #     env.shuffleObjects(env.obj_ids)
+    #     env.dummySimulationSteps(500)
     
 
     
