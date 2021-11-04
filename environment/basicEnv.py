@@ -26,8 +26,9 @@ class BaiscEnvironment:
 
         self.robotType = robotType #"Panda" #UR5
 
-        self.camPos = [0.05, -0.52, 1.3]
-        self.camTarget = [self.camPos[0], self.camPos[1], 0.785]
+        self.camPos = [0.05, -0.52, 1.3] # box size 0.35
+        # self.camPos = np.array([0.05, -0.52, 1.0])
+        self.camTarget = np.array([self.camPos[0], self.camPos[1], 0.785])
         IMG_SIZE = img_size
         self.camera = Camera(cam_pos=self.camPos, cam_target= self.camTarget, near = 0.2, far = 2, size= [IMG_SIZE, IMG_SIZE], fov=40)
 
@@ -48,6 +49,8 @@ class BaiscEnvironment:
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -10)
         p.setTimeStep(simulationStepTime)
+
+        # self.visualizeCameraPosition()
 
         self.planeID = p.loadURDF('plane.urdf')
         self.tableID = p.loadURDF('environment/urdf/objects/table.urdf',
@@ -139,7 +142,33 @@ class BaiscEnvironment:
         p.stepSimulation()
        
             
-    
+    def visualizeCameraPosition(self):
+        pos = np.copy(self.camPos[:])+np.array([0,0,0.0025])
+        size = 0.05
+        halfsize = size/2
+        mass  = 0 #kg
+        color = [1,0,0,1]
+        lens  = p.createCollisionShape(p.GEOM_CYLINDER, radius=halfsize*2,height = 0.005 )
+        vis = p.createVisualShape(p.GEOM_CYLINDER,radius=halfsize*2,length=0.005, rgbaColor=color, specularColor=[0,0,0])
+        obj_id = p.createMultiBody(mass, lens, vis, pos, [0,0,0,1])
+        
+        ####
+
+        color = [0,0,0,1]
+        pos = np.copy(self.camPos[:])+np.array([0,0,0.025+0.0025])
+        box  = p.createCollisionShape(p.GEOM_BOX, halfExtents=[halfsize, halfsize, halfsize])
+        vis = p.createVisualShape(p.GEOM_BOX, halfExtents=[halfsize, halfsize, halfsize], rgbaColor=color, specularColor=[1,1,1])
+        obj_id = p.createMultiBody(mass, box, vis, pos, [0,0,0,1])
+
+        
+
+
+        # p.changeDynamics(obj_id, 
+        #                 -1,
+        #                 spinningFriction=0.001,
+        #                 rollingFriction=0.001,
+        #                 linearDamping=0.0)
+
     def visualizePredictedGrasp(self,grasps,color = [0,0,1],visibleTime =2):
        
         lineIDs = []
@@ -426,26 +455,26 @@ class BaiscEnvironment:
         for _ in range(200):
             p.stepSimulation()
 
-    def createTempBox(self, width, num):
+    def createTempBox(self, width, no):
         box_width = width
         box_height = 0.1
         box_z = self.Z_TABLE_TOP + (box_height/2)
-        id1 = p.loadURDF(f'environment/urdf/objects/slab{num}.urdf',
+        id1 = p.loadURDF(f'environment/urdf/objects/slab{no}.urdf',
                          [self.obj_init_pos[0] - box_width /
                              2, self.obj_init_pos[1], box_z],
                          p.getQuaternionFromEuler([0, 0, 0]),
                          useFixedBase=True)
-        id2 = p.loadURDF(f'environment/urdf/objects/slab{num}.urdf',
+        id2 = p.loadURDF(f'environment/urdf/objects/slab{no}.urdf',
                          [self.obj_init_pos[0] + box_width /
                              2, self.obj_init_pos[1], box_z],
                          p.getQuaternionFromEuler([0, 0, 0]),
                          useFixedBase=True)
-        id3 = p.loadURDF(f'environment/urdf/objects/slab{num}.urdf',
+        id3 = p.loadURDF(f'environment/urdf/objects/slab{no}.urdf',
                          [self.obj_init_pos[0], self.obj_init_pos[1] +
                              box_width/2, box_z],
                          p.getQuaternionFromEuler([0, 0, np.pi*0.5]),
                          useFixedBase=True)
-        id4 = p.loadURDF(f'environment/urdf/objects/slab{num}.urdf',
+        id4 = p.loadURDF(f'environment/urdf/objects/slab{no}.urdf',
                          [self.obj_init_pos[0], self.obj_init_pos[1] -
                              box_width/2, box_z],
                          p.getQuaternionFromEuler([0, 0, np.pi*0.5]),
@@ -545,6 +574,16 @@ class BaiscEnvironment:
         self.moveObjectAlongAxis(down_obj_id, 1, '+', step, init_y)
         self.updateObjectStates()
 
+    def shuffleObjects(self,objIDs):
+        obj_init_pos = [0.05, -0.52]
+        for o in objIDs:
+            r_x    = random.uniform(obj_init_pos[0] - 0.1, obj_init_pos[0] + 0.1)
+            r_y    = random.uniform(obj_init_pos[1] - 0.1, obj_init_pos[1] + 0.1)
+            roll   = random.uniform(0, np.pi)
+            orn    = p.getQuaternionFromEuler([roll, 0, 0])
+            pos    = [r_x, r_y, 0.85]
+            p.resetBasePositionAndOrientation(o,pos,orn)
+        
 
     def creatPileofTube(self,n):
         obj_init_pos = [0.05, -0.52]
@@ -558,9 +597,8 @@ class BaiscEnvironment:
             pos    = [r_x, r_y, 1]
             obj_id = p.loadURDF("objects/ycb_objects/YcbTomatoSoupCan/model.urdf", pos, orn)
             
-            for _ in range(100):
-                p.stepSimulation()
-
+            self.dummySimulationSteps(5)
+        
             # p.changeDynamics(obj_id, 
             #                 -1,
             #                 spinningFriction = 0.4,

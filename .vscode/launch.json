@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: GraspTest",
+            "type": "python",
+            "request": "launch",
+            "module": "demos.graspDetectionTest"
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
@@ -17,6 +23,5 @@
             "request": "launch",
             "module": "demos.basicDemo"
         }
-       
     ]
 }

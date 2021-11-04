@@ -258,7 +258,7 @@ if __name__ == '__main__':
             network_model = "GGCNN"
             IMG_SIZE = 300
             network_path = 'trained_models/GGCNN/ggcnn_weights_cornell/ggcnn_epoch_23_cornell'
-            sys.path.append('trainconda env export > environment.ymled_models/GGCNN')
+            sys.path.append('trained_models/GGCNN')
     elif (networkName == "GR_ConvNet"):
             ##### GR-ConvNet #####
             network_model = "GR_ConvNet"
@@ -266,19 +266,38 @@ if __name__ == '__main__':
             network_path = 'trained_models/GR_ConvNet/cornell-randsplit-rgbd-grconvnet3-drop1-ch32/epoch_19_iou_0.98'
             sys.path.append('trained_models/GR_ConvNet')
   
+    depth_radius = 2
     env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
     # env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
-    # env.createTempBox(0.35, 1)
-    # env.createTempBox(0.2, 1)
+    env.createTempBox(0.35, 1)
     env.updateBackgroundImage(1)
-        
-    env.creatPileofTube(10)
-    env.dummySimulationSteps(500)
     
-    gc = GraspControl(env,network_model) 
-    gc.updateState("GoHome")
-    gc.EnableGraspingProcess = True
-    for _ in range(50000):
-        gc.graspStateMachine()
+    gg = GraspGenerator(network_path, env.camera, depth_radius, env.camera.width, network_model)
+    env.creatPileofTube(100)
+   
+    for _ in range(100):
+        env.dummySimulationSteps(50)
+        rgb ,depth = env.captureImage(1)    
+        number_of_predict = 1
+        output = False
+        grasps, save_name = gg.predict_grasp( rgb, depth, n_grasps=number_of_predict, show_output=output)
+        print(grasps)
+        if (grasps == []):
+            print ("can not predict any grasp point")
+        else:
+            env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=1)   
+
+        env.dummySimulationSteps(50)
+        # env.removeAllObject()
+        env.shuffleObjects(env.obj_ids)
+        env.dummySimulationSteps(500)
+    
+
+    
+    # gc = GraspControl(env,network_model) 
+    # gc.updateState("GoHome")
+    # gc.EnableGraspingProcess = True
+    # for _ in range(50000):
+    #     gc.graspStateMachine()
     
   
