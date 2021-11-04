@@ -105,7 +105,7 @@ class BaiscEnvironment:
             self.joints, self.controlGripper, self.controlJoints =\
             setupPanda(p, self.robot_id, gripper_type)
             self.eef_id = 11 #8 # ee_link
-            self.finger_length = -0.025
+            self.finger_length = -0.03
 
             # Add force sensors
             p.enableJointForceTorqueSensor(self.robot_id, self.joints['panda_finger_joint1'].id)
@@ -145,7 +145,11 @@ class BaiscEnvironment:
         lineIDs = []
         for g in grasps:
             x, y, z, yaw, opening_len, obj_height = g
+            # yaw = yaw-np.pi/2
             lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=3))
+            lineIDs.append(p.addUserDebugLine([x, y, z], [x+(opening_len*np.cos(yaw)), y+(opening_len*np.sin(yaw)), z],color, lineWidth=3))
+            lineIDs.append(p.addUserDebugLine([x, y, z], [x-(opening_len*np.cos(yaw)), y-(opening_len*np.sin(yaw)), z],color, lineWidth=3))
+            
 
         self.dummySimulationSteps(10)
         time.sleep(visibleTime)

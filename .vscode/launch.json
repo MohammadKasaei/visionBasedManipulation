@@ -12,23 +12,11 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: Manipulation Module",
-            "type": "python",
-            "request": "launch",
-            "module": "demos.demo3"
-        },
-        {
             "name": "Python: BaiscDemo",
             "type": "python",
             "request": "launch",
             "module": "demos.basicDemo"
-        },
-        {
-            "name": "Python: BaiscDualDemo",
-            "type": "python",
-            "request": "launch",
-            "module": "demos.basicDualDemo"
         }
-
+       
     ]
 }

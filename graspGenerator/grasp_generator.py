@@ -75,7 +75,7 @@ class GraspGenerator:
         imgWorldOrigin  = p.multiplyTransforms(self.cameraPos, p.getQuaternionFromEuler([0,0,0]), imgOriginRelative, p.getQuaternionFromEuler([0,0,self.IMG_ROTATION]))
         robot_xyz = p.multiplyTransforms(imgWorldOrigin[0],imgWorldOrigin[1], np.array([x_p,y_p,-z_p]), p.getQuaternionFromEuler([0,0,grasp.angle]))
 
-        roll = p.getEulerFromQuaternion(robot_xyz[1])[2]
+        yaw = p.getEulerFromQuaternion(robot_xyz[1])[2]
 
         # Covert pixel width to gripper width
         opening_length = (grasp.length / int(self.MAX_GRASP *
@@ -83,7 +83,7 @@ class GraspGenerator:
 
         obj_height = self.DIST_BACKGROUND - z_p
 
-        return robot_xyz[0][0], robot_xyz[0][1], robot_xyz[0][2], roll, opening_length, obj_height
+        return robot_xyz[0][0], robot_xyz[0][1], robot_xyz[0][2], yaw, opening_length, obj_height
 
     def predict(self, rgb, depth, n_grasps=1, show_output=False):
 
@@ -159,7 +159,7 @@ class GraspGenerator:
         predictions, save_name = self.predict(rgb, depth, n_grasps=n_grasps, show_output=show_output)
         grasps = []
         for grasp in predictions:
-            x, y, z, roll, opening_len, obj_height = self.grasp_to_robot_frame(grasp, depth)
-            grasps.append((x, y, z, roll, opening_len, obj_height))
+            x, y, z, yaw, opening_len, obj_height = self.grasp_to_robot_frame(grasp, depth)
+            grasps.append((x, y, z, yaw, opening_len, obj_height))
 
         return grasps, save_name

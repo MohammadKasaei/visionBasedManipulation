@@ -17,7 +17,7 @@ class GraspControl():
         if self.env.robotType == "UR5":
             self.GRIPPER_MOVING_HEIGHT = 1.2
             self.GRIP_REDUCTION = 0.3
-            self.GRIPPER_INIT_ORN = [-np.pi*0.25, np.pi/2, 0.0]
+            self.GRIPPER_INIT_ORN = [-0*np.pi*0.25, np.pi/2, 0.0]
         elif self.env.robotType == "Panda":
             self.GRIPPER_MOVING_HEIGHT = 1.2
             self.GRIP_REDUCTION = 0.3
@@ -45,7 +45,7 @@ class GraspControl():
             "GoHome": 20000,
             "GraspDetection": 2000,
             "MoveOnTopofBox": 10000,
-            "ReadyToGrasp": 10000,
+            "ReadyToGrasp": 20000,
             "Grasp": 5000,
             "Pickup": 5000,
             "MoveObjectIntoTarget": 10000,
@@ -63,7 +63,8 @@ class GraspControl():
         2- no grasp detection -> change the env
            > use next grasp point once it fails two times
         3- multiple robot type: DONE
-        4- visualize gripper 
+        4- visualize prasp configuration 
+        5- visualize camera pos and orientation
 
     """
 
@@ -84,12 +85,17 @@ class GraspControl():
 
     def selectBestGraspPoint(self,grasps):
         distToCenter = 1000
+        zmax = 0
         for g in grasps:
             x, y, z, roll, opening_len, obj_height = g
-            d = np.linalg.norm(np.array([x,y])-np.array([0.05, -0.52]))
-            if (d < distToCenter):
-                distToCenter = d
+            if (zmax < z):
+                zmax = z
                 grasp = g 
+        
+            # d = np.linalg.norm(np.array([x,y])-np.array([0.05, -0.52]))
+            # if (d < distToCenter):
+            #     distToCenter = d
+            #     grasp = g 
         
         return grasp
 
@@ -99,14 +105,12 @@ class GraspControl():
     def getTargetOrientation(self):
         
         if self.env.robotType == "UR5":
-            return   p.getQuaternionFromEuler([self.gOrn[0], np.pi/2, 0.0]) 
+            # return   p.getQuaternionFromEuler([self.gOrn, np.pi/2, 0.0]) 
+            return   p.getQuaternionFromEuler([0, np.pi/2, self.gOrn-np.pi/2]) 
         elif self.env.robotType == "Panda":
-            return   p.getQuaternionFromEuler([-np.pi, 0, self.gOrn[0]]) 
+            return   p.getQuaternionFromEuler([-np.pi, 0, self.gOrn-np.pi/2]) 
             
         
-
-
-
     def graspStateMachine(self):
         self.timeoutControl()
         eeState   = self.env.getEEState()
@@ -127,7 +131,9 @@ class GraspControl():
                     self.updateState("GraspDetection")
                 else:
                     print ("Accomplished...")
-                    self.updateState("Stop")
+                    self.env.creatPileofTube(1)
+  
+                    # self.updateState("Stop")
                else:
                 self.cnt += 1
             else:
@@ -136,22 +142,23 @@ class GraspControl():
         elif self.gState  == "GraspDetection":
             
             rgb ,depth = self.env.captureImage(1)
-            number_of_predict = 3
+            number_of_predict = 1
             output = False
             grasps, save_name = self.gg.predict_grasp( rgb, depth, n_grasps=number_of_predict, show_output=output)
+            print(grasps)
             if (grasps == []):
                 print ("can not predict any grasp point")
                 self.cnt+=1
                 if self.cnt > 3:
                     self.updateState("GoHome")
             else:
-                env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=0.1)
+                env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=1)
                 grasp = self.selectBestGraspPoint(grasps)
 
-                x, y, z, roll, opening_len, obj_height = grasp 
+                x, y, z, yaw, opening_len, obj_height = grasp 
                 self.gPos = [x, y, np.clip(z+self.env.finger_length, *self.env.ee_position_limit[2])]
 
-                self.gOrn = [roll,0,0]
+                self.gOrn = yaw
                 self.updateState("MoveOnTopofBox")
 
         
@@ -252,7 +259,7 @@ if __name__ == '__main__':
             network_model = "GGCNN"
             IMG_SIZE = 300
             network_path = 'trained_models/GGCNN/ggcnn_weights_cornell/ggcnn_epoch_23_cornell'
-            sys.path.append('trained_models/GGCNN')
+            sys.path.append('trainconda env export > environment.ymled_models/GGCNN')
     elif (networkName == "GR_ConvNet"):
             ##### GR-ConvNet #####
             network_model = "GR_ConvNet"
@@ -260,10 +267,13 @@ if __name__ == '__main__':
             network_path = 'trained_models/GR_ConvNet/cornell-randsplit-rgbd-grconvnet3-drop1-ch32/epoch_19_iou_0.98'
             sys.path.append('trained_models/GR_ConvNet')
   
-    env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
-    #env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
-    env.createTempBox(0.35, 1)
-    env.creatPileofTube(5)
+    # env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
+    env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
+    # env.createTempBox(0.35, 1)
+    env.updateBackgroundImage(1)
+        
+    env.creatPileofTube(1)
+
     env.dummySimulationSteps(500)
     
     gc = GraspControl(env,network_model) 
