@@ -250,8 +250,8 @@ class GraspControl():
 
 if __name__ == '__main__':
 
-    networkName = "GGCNN"
-    if (networkName == "GGCNN"):
+    networkName = "GR_ConvNet"
+    if (networkName == "GR_ConvNet"):
             ##### GGCNN #####
             network_model = "GGCNN"
             IMG_SIZE = 300
@@ -265,14 +265,14 @@ if __name__ == '__main__':
             sys.path.append('trained_models/GR_ConvNet')
   
     depth_radius = 2
-    # env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
-    env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
+    env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
+    # env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
     
     env.createTempBox(0.35, 1)
     env.updateBackgroundImage(1)
     
     gg = GraspGenerator(network_path, env.camera, depth_radius, env.camera.width, network_model)
-    env.creatPileofTube(1)
+    env.creatPileofTube(20)
     env.dummySimulationSteps(100)
 
     for _ in range(10000):

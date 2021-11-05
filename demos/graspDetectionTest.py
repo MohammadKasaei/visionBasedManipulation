@@ -267,7 +267,7 @@ if __name__ == '__main__':
     depth_radius = 2
     env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
     # env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
-    env.createTempBox(0.35, 1)
+    env.createTempBox(0.35, 2)
     env.updateBackgroundImage(1)
     
     gg = GraspGenerator(network_path, env.camera, depth_radius, env.camera.width, network_model)
@@ -283,7 +283,7 @@ if __name__ == '__main__':
         if (grasps == []):
             print ("can not predict any grasp point")
         else:
-            env.visualizePredictedGrasp(grasps,color=[1,1,0],visibleTime=1)   
+            env.visualizePredictedGrasp(grasps,color=[1,0,1],visibleTime=1)   
 
         env.dummySimulationSteps(50)
         # env.removeAllObject()

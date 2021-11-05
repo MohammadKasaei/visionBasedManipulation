@@ -26,7 +26,8 @@ class BaiscEnvironment:
 
         self.robotType = robotType #"Panda" #UR5
 
-        self.camPos = [0.05, -0.52, 1.3] # box size 0.35
+        # self.camPos = [0.05, -0.52, 1.3] # box size 0.35
+        self.camPos = [0.05, -0.52, 1.23] # box size 0.35
         # self.camPos = np.array([0.05, -0.52, 1.0])
         self.camTarget = np.array([self.camPos[0], self.camPos[1], 0.785])
         IMG_SIZE = img_size
@@ -108,7 +109,7 @@ class BaiscEnvironment:
             self.joints, self.controlGripper, self.controlJoints =\
             setupPanda(p, self.robot_id, gripper_type)
             self.eef_id = 11 #8 # ee_link
-            self.finger_length = -0.03
+            self.finger_length = -0.025
 
             # Add force sensors
             p.enableJointForceTorqueSensor(self.robot_id, self.joints['panda_finger_joint1'].id)
@@ -174,10 +175,11 @@ class BaiscEnvironment:
         lineIDs = []
         for g in grasps:
             x, y, z, yaw, opening_len, obj_height = g
+            opening_len = np.clip(opening_len,0,0.04)
             # yaw = yaw-np.pi/2
-            lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=3))
-            lineIDs.append(p.addUserDebugLine([x, y, z], [x+(opening_len*np.cos(yaw)), y+(opening_len*np.sin(yaw)), z],color, lineWidth=3))
-            lineIDs.append(p.addUserDebugLine([x, y, z], [x-(opening_len*np.cos(yaw)), y-(opening_len*np.sin(yaw)), z],color, lineWidth=3))
+            lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=5))
+            lineIDs.append(p.addUserDebugLine([x, y, z], [x+(opening_len*np.cos(yaw)), y+(opening_len*np.sin(yaw)), z],color, lineWidth=5))
+            lineIDs.append(p.addUserDebugLine([x, y, z], [x-(opening_len*np.cos(yaw)), y-(opening_len*np.sin(yaw)), z],color, lineWidth=5))
             
 
         self.dummySimulationSteps(10)

@@ -196,7 +196,7 @@ class GraspControl():
         elif self.gState  == "Grasp":
 
             succes_grasp = False
-            self.env.moveGripper(0.001)
+            self.env.moveGripper(0.01)
             time.sleep(0.025)
             grasped_id = self.env.checkGraspedID()
             if len(grasped_id) >= 1:
@@ -252,7 +252,7 @@ class GraspControl():
 
 if __name__ == '__main__':
 
-    networkName = "GGCNN"
+    networkName = "GR_ConvNet"
     if (networkName == "GGCNN"):
             ##### GGCNN #####
             network_model = "GGCNN"

@@ -37,7 +37,7 @@ class GraspGenerator:
 
         self.network = network
 
-        self.pixelToMeter= 0.368 / imgWidth
+        self.pixelToMeter= 0.35 / imgWidth
         # self.pixelToMeter= 0.17 / imgWidth
 
         self.PIX_CONVERSION = 277 * imgWidth/224
