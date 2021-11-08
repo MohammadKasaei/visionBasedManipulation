@@ -32,7 +32,7 @@ pip install pybullet --upgrade --user
 If you are using command line, before running our basic demo, you need to add the path to our project to the PYTHONPATH environment variable. Just run the following command.
 
 ```shell
-export PYTHONPATH=$PYTHONPATH:/your/path/to/visionBasedManipulation::/your/path/to/visionBasedManipulation/network
+export PYTHONPATH=$PYTHONPATH:/your/path/to/visionBasedManipulation:/your/path/to/visionBasedManipulation/network
 ```
 
 if you are using vscode, you can use the launch.json file in .vscode folder to configure project and  run the demo directly.
