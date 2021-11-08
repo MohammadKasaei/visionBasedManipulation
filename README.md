@@ -29,7 +29,7 @@ pip install pybullet --upgrade --user
 
 ### Environment Setup
 
-If you are using command line, before running our basic demo, you need to the path to our project to the PYTHONPATH environment variable. Just run the following command.
+If you are using command line, before running our basic demo, you need to add the path to our project to the PYTHONPATH environment variable. Just run the following command.
 
 ```shell
 export PYTHONPATH=$PYTHONPATH:/your/path/to/visionBasedManipulation::/your/path/to/visionBasedManipulation/network
