@@ -39,8 +39,6 @@ if you are using vscode, you can use the launch.json file in .vscode folder to c
 
 
 
-
-
 ###  Basic demo
 
 Activate the virtual environment and run the basic demo.
