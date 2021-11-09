@@ -52,6 +52,7 @@ python demos/basicDemo.py
 
 You can see a simulation like this: 
 
+
 ![](https://github.com/MohammadKasaei/visionBasedManipulation/blob/main/figs/basicDemo.png)
 
 
