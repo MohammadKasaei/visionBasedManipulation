@@ -1,8 +1,8 @@
 import time
 
 from cv2 import getTrackbarPos
-from environment.basicEnv import BaiscEnvironment
-from environment.camera.camera import Camera
+from environment.basicEnv import BaiscVGNEnvironment
+from environment.camera.camera import Camera, VGNCamera
 from graspGenerator.grasp_generator import GraspGenerator
 
 import pybullet as p
@@ -12,7 +12,8 @@ import sys
 import rospy
 import std_msgs
 import sensor_msgs
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import PointCloud2, Image
+from cv_bridge import CvBridge
 
 import open3d as o3d
 
@@ -59,8 +60,10 @@ class GraspControl():
             "DropObject": 5000
             }
 
+        self.bridge = CvBridge()
 
-        self.pc_pub = rospy.Publisher("pybullet_point_cloud", PointCloud2, queue_size=1)
+        self.pc_pub = rospy.Publisher("pybullet/depth/points", PointCloud2, queue_size=1)
+        self.rgb_pub = rospy.Publisher("pybullet/rgb/image_raw", Image, queue_size=1)
 
 
         # rospy.spin()
@@ -91,6 +94,9 @@ class GraspControl():
             convert_rgb_to_intensity=False,
         )
 
+        rgb_msg = self.bridge.cv2_to_imgmsg(rgb, encoding='bgr8')
+        self.rgb_pub.publish(rgb_msg)
+
         intrinsic = self.env.camera.intrinsic
         intrinsic = o3d.camera.PinholeCameraIntrinsic(
             width=intrinsic.width,
@@ -103,6 +109,9 @@ class GraspControl():
 
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic)
         pc = np.asarray(pcd.points)
+        pc[:,2] = -pc[:,2] + 1.23
+
+        rgb_pc = np.concatenate([rgb.reshape(-1,3), pc], axis=-1)
 
         ros_dtype = sensor_msgs.msg.PointField.FLOAT32
         dtype = np.float32
@@ -111,9 +120,9 @@ class GraspControl():
         print("Converting to PointCloud2 msg: ")
         print("dtype: {}, itemsize: {}, pc: {}".format(dtype, itemsize, pc.shape))
 
-        data = pc.astype(dtype).tobytes()
+        data = rgb_pc.astype(dtype).tobytes()
 
-        pc_fields = "xyz"
+        pc_fields = "rgbxyz"
 
         fields = [sensor_msgs.msg.PointField(
             name=n, offset=i*itemsize, datatype=ros_dtype, count=1)
@@ -341,7 +350,7 @@ if __name__ == '__main__':
             sys.path.append('trained_models/GR_ConvNet')
   
     # env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
-    env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
+    env = BaiscVGNEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
     #env.createTempBox(0.35, 1)
     #env.createTempBox(0.2, 1)
     env.updateBackgroundImage(1)
