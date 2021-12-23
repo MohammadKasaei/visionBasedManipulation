@@ -55,3 +55,29 @@ You can see a simulation like this:
 
 
 
+
+
+### Basic demo with ROS wrapper(ongoing)
+
+This demo included a ROS wrapper for the basic demo, the RGB-D images and point clouds are generated from Pybullet simulation and published to ROS topic. 
+
+@TODO:
+
+needs to add tf from Pybullet
+
+```
+conda activate env_name
+python demos/basicROSDemo.py
+```
+
+![](https://github.com/MohammadKasaei/visionBasedManipulation/blob/main/figs/pybullet.png "Pybullet simulation") ![](https://github.com/MohammadKasaei/visionBasedManipulation/blob/main/figs/pybullet-pc.png "Point Cloud from Pybullet")
+
+### Basic VGN demo(ongoing)
+
+This demo adopt [VGN](https://github.com/ethz-asl/vgn.git) in our setup, its a 6D grasp predicting method using point clouds as input.
+
+```
+conda activate env_name
+python demos/basicVGNDemo.py
+```
+
