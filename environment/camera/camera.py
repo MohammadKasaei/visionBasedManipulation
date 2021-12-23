@@ -126,7 +126,7 @@ class CameraIntrinsic(object):
 
 
 class VGNCamera:
-    def __init__(self, intrinsic, near, far, cam_pos, cam_target, sim_size=0.8):
+    def __init__(self, intrinsic, near, far, cam_pos, cam_target, sim_size=2):
         self.x, self.y, self.z = cam_pos
         self.x_t, self.y_t, self.z_t = cam_target
         self.width = intrinsic.width
