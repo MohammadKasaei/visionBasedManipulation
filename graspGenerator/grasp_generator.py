@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.core.fromnumeric import size
 from numpy.lib.npyio import save
 import torch.utils.data
 from PIL import Image
@@ -13,6 +14,208 @@ from network.utils.visualisation.plot import plot_results, save_results
 from network.utils.dataset_processing.grasp import detect_grasps
 import os
 import cv2
+import collections
+from pathlib import Path
+
+
+import open3d as o3d
+
+from vgn.perception import TSDFVolume, create_tsdf
+from vgn.detection import VGN
+from vgn.utils.transform import Transform
+
+State = collections.namedtuple("State", ["tsdf", "pc"])
+
+
+class VGNGraspGenerator:
+    def __init__(self, model, camera):
+        self.net = VGN(model_path=Path(model))
+        self.camera = camera
+
+    
+    def predict(self, rgb, depth):
+        tsdf = TSDFVolume(self.camera.sim_size, 512)
+        # high_res_tsdf = TSDFVolume(self.camera.sim_size, 640)
+
+        depth = (
+            1.0 * self.camera.far * self.camera.near / (self.camera.far - (self.camera.far - self.camera.near) * depth)
+        )
+
+
+        cv2.imwrite("./test_depth.png", depth * 255)
+        cv2.imwrite("./test_rgb.png", rgb * 255)
+
+
+        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
+            o3d.geometry.Image(rgb),
+            # o3d.geometry.Image(rgb),
+            o3d.geometry.Image(depth),
+            depth_scale=1.0,
+            depth_trunc=2.0,
+            convert_rgb_to_intensity=False,
+        )
+
+        intrinsic = self.camera.intrinsic
+        intrinsic = o3d.camera.PinholeCameraIntrinsic(
+            width=intrinsic.width,
+            height=intrinsic.height,
+            fx=intrinsic.fx,
+            fy=intrinsic.fy,
+            cx=intrinsic.cx,
+            cy=intrinsic.cy,
+        )
+
+        # For camera [0.05, -0.52, 1.23]
+        # For TSDF [1, 1, 0]
+        extrinsic = self.camera.extrinsic * self.camera.origin.inverse()
+
+        # integrate RGBD image to TSDF
+        tsdf.integrate(depth, self.camera.intrinsic, extrinsic)
+        # high_res_tsdf.integrate(depth, self.camera.intrinsic, extrinsic)
+
+        pc = tsdf.get_cloud()
+        np_pc = np.asarray(pc.points)
+
+        print(np_pc.shape)
+
+        state = State(tsdf, pc)
+        grasps, scores, planning_times = self.net(state)
+
+        # For visualization
+        FOR = o3d.geometry.TriangleMesh.create_coordinate_frame(
+        size=1, origin=[self.camera.sim_size/2,self.camera.sim_size/2,0])
+        FOR_ori = o3d.geometry.TriangleMesh.create_coordinate_frame(
+        size=3, origin=[0,0,0])
+        
+        o3d.visualization.draw_geometries([FOR,FOR_ori,pc])
+
+        
+
+        # Generate point clouds from RGBD image
+        # rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
+        #     o3d.geometry.Image(np.empty_like(depth)),
+        #     # o3d.geometry.Image(rgb),
+        #     o3d.geometry.Image(depth),
+        #     depth_scale=1.0,
+        #     depth_trunc=2.0,
+        #     convert_rgb_to_intensity=False,
+        # )
+
+        # intrinsic = self.camera.intrinsic
+        # intrinsic = o3d.camera.PinholeCameraIntrinsic(
+        #     width=intrinsic.width,
+        #     height=intrinsic.height,
+        #     fx=intrinsic.fx,
+        #     fy=intrinsic.fy,
+        #     cx=intrinsic.cx,
+        #     cy=intrinsic.cy,
+        # )
+
+        # pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic)
+
+        # # To check if all points are located in the volume
+        # points = np.asarray(pcd.points)
+        # num = points.shape[0]
+        # count = 0
+        # for i in range(num):
+        #     p = points[i]
+        #     print("============================")
+        #     print(p[0], p[1], p[2])
+        #     if (p[0] >= 0 and p[0] <= 2) and ((p[1] >= 0 and p[1] <= 2)) and ((p[2] >= 0 and p[2] <= 2)):
+        #         count += 1
+        # print(count)
+
+
+
+
+        # # pcd.transform([[1,0,0,1],[0,-1,0,0.48],[0,0,-1,1.23],[0,0,0,1]])
+
+
+        
+
+        # t_matrix = np.asarray([[1,0,0,1.05],[0,-1,0,0.48],[0,0,-1,1.23],[0,0,0,1]])
+        # extrinsic = Transform.from_matrix(t_matrix)
+
+        # # print(extrinsic.as_matrix()) 
+
+        
+
+        
+        
+        # # print(count)
+        # # print(points.shape)
+
+        # # o3d.visualization.draw_geometries([pcd])
+
+        # # points = np.asarray(pcd.points)
+
+        # # num = points.shape[0]# pcd.transform([[1,0,0,1],[0,-1,0,0.48],[0,0,-1,1.23],[0,0,0,1]])
+
+
+        # # points = np.asarray(pcd.points)
+        # # num = points.shape[0]
+        # # count = 0
+        # # for i in range(num):
+        # #     p = points[i]
+        # #     print("============================")
+        # #     print(p[0], p[1], p[2])
+        # #     if (p[0] >= 0 and p[0] <= 2) and ((p[1] >= 0 and p[1] <= 2)) and ((p[2] >= 0 and p[2] <= 2)):
+        # #         count += 1
+
+        
+
+        # # print(extrinsic.as_matrix()) 
+
+        
+
+        
+        
+        # # print(count)
+        # # print(points.shape)
+
+        # # o3d.visualization.draw_geometries([pcd])
+
+        # # points = np.asarray(pcd.points)
+
+        # # num = points.shape[0]
+        # # zeros = np.zeros(num).reshape(-1,1)
+
+        # # points_ = np.concatenate([points, zeros], axis=-1)
+
+        # # extrinsic = self.camera.extrinsic * self.camera.origin.inverse()
+
+        # # print(extrinsic.as_matrix())
+
+        # # new_points = np.matmul(points_, extrinsic.as_matrix())
+        # # print(np.mean(new_points, axis=0))
+        # # print(np.max(new_points, axis=0), np.min(new_points, axis=0))
+        # # print(new_points.shape)
+
+        # tsdf.integrate(depth, self.camera.intrinsic, extrinsic)
+        # high_res_tsdf.integrate(depth, self.camera.intrinsic, extrinsic)
+        # pc = high_res_tsdf.get_cloud()
+
+        # np_pc = np.asarray(pc.points)
+
+        # o3d.visualization.draw_geometries([pc])
+
+        # state = State(tsdf, pc)
+        # grasps, scores, planning_times = self.net(state)
+        # print(grasps)
+        # print(scores)
+        # # zeros = np.zeros(num).reshape(-1,1)
+
+        # # points_ = np.concatenate([points, zeros], axis=-1)
+
+        # # extrinsic = self.camera.extrinsic * self.camera.origin.inverse()
+
+        # # print(extrinsic.as_matrix())
+
+        # # new_points = np.matmul(points_, extrinsic.as_matrix())
+        # # print(np.mean(new_points, axis=0))
+        # # print(np.max(new_points, axis=0), np.min(new_points, axis=0))
+        # # print(new_points.shape)
+
 
 class GraspGenerator:
 
