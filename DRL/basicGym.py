@@ -111,7 +111,6 @@ class CustomEnv(gym.Env):
         self.act = None
         self.simTime = 0
 
-
         self.env.resetRobot(gripperType="140")
         self.env.moveGripper(0.4,100)
         self.env.removeAllObject()

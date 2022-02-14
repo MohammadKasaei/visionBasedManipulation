@@ -23,6 +23,8 @@ conda install pytorch==1.8.0 torchvision==0.9.0 cudatoolkit=11.1 -c pytorch -c c
 conda install scikit-image
 pip install attrdict opencv-python matplotlib
 pip install pybullet --upgrade --user
+pip install -U rospkg
+pip3 install open3d
 ```
 
 
