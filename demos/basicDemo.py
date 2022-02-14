@@ -266,12 +266,11 @@ if __name__ == '__main__':
             network_path = 'trained_models/GR_ConvNet/cornell-randsplit-rgbd-grconvnet3-drop1-ch32/epoch_19_iou_0.98'
             sys.path.append('trained_models/GR_ConvNet')
   
-    env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
-    # env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
+    # env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
+    env = BaiscEnvironment(GUI = True,robotType ="UR5",img_size= IMG_SIZE)
     # env.createTempBox(0.35, 1)
     # env.createTempBox(0.2, 1)
     env.updateBackgroundImage(1)
-        
     env.creatPileofTube(10)
     env.dummySimulationSteps(500)
     

@@ -8,6 +8,8 @@ import pybullet_data
 import random
 import cv2
 from utils.Matrix_4x4 import Matrix_4x4
+from utils.ycbObjectLoader import YcbObjects
+
 
 
 class BaiscEnvironment:
@@ -20,14 +22,14 @@ class BaiscEnvironment:
     Z_TABLE_TOP = 0.785
     GRIP_REDUCTION = 0.3
 
-    def __init__(self, GUI=False, debug=False, robotType ="UR5", img_size = 220,simulationStepTime=0.01) -> None:
+    def __init__(self, GUI=False, debug=False, robotType ="UR5", gripper_type='140',img_size = 220,simulationStepTime=0.01) -> None:
         self.vis = GUI
         self.debug = debug
 
         self.robotType = robotType #"Panda" #UR5
 
         # self.camPos = [0.05, -0.52, 1.3] # box size 0.35
-        self.camPos = [0.05, -0.52, 1.23] # box size 0.35
+        self.camPos = [0.05, -0.52, 1.5] # box size 0.35
         # self.camPos = np.array([0.05, -0.52, 1.0])
         self.camTarget = np.array([self.camPos[0], self.camPos[1], 0.785])
         IMG_SIZE = img_size
@@ -36,10 +38,16 @@ class BaiscEnvironment:
         self.obj_init_pos = (self.camera.x, self.camera.y)
         self.obj_ids = []
         self.obj_positions = []
-        self.obj_orientations = []
+        self.obj_orientations = []  
+
+        self_collisions = True
+        if self_collisions:
+            flags = (p.URDF_USE_SELF_COLLISION + p.URDF_USE_INERTIA_FROM_FILE)
+        else:
+            flags = (p.URDF_USE_INERTIA_FROM_FILE)
 
 
-        gripper_type='85'
+        # gripper_type='85'
         if gripper_type not in ('85', '140'):
             raise NotImplementedError(
                 'Gripper %s not implemented.' % gripper_type)
@@ -48,7 +56,7 @@ class BaiscEnvironment:
         # define environment
         self.physicsClient = p.connect(p.GUI if self.vis else p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.setGravity(0, 0, -10)
+        p.setGravity(0, 0, -9.81)
         p.setTimeStep(simulationStepTime)
 
         # self.visualizeCameraPosition()
@@ -77,13 +85,16 @@ class BaiscEnvironment:
                                    [0, 0, 0.0],  # StartPosition
                                    p.getQuaternionFromEuler([0, 0, 0]),  # StartOrientation
                                    useFixedBase=True,
-                                   flags=p.URDF_USE_INERTIA_FROM_FILE)
+                                   flags=flags)
                               
             self.joints, self.controlGripper, self.controlJoints, self.mimicParentName =\
                 setupUR5(p, self.robot_id, gripper_type)
             
             self.eef_id = 7  # ee_link 
-            self.finger_length = 0.02 # should be changed based on gripper
+            self.ee_id  = 7
+            self.f1_id  = 13 #12
+            self.f2_id  = 17 #17
+            self.finger_length = 0.25 # should be changed based on gripper
 
 
             # Add force sensors
@@ -95,7 +106,11 @@ class BaiscEnvironment:
             p.changeDynamics(self.robot_id, self.joints['right_inner_finger_pad_joint'].id, lateralFriction=1)
       
             # Setup some Limit
-            self.gripper_open_limit = (0.0, 0.1)
+            if (gripper_type == "85"):
+                self.gripper_open_limit = (0.0, 0.1)
+            else:
+                self.gripper_open_limit = (0.2, 0.8)
+                
             self.ee_position_limit = ((-0.8, 0.8),
                                     (-0.8, 0.8),
                                     (0.785, 1.4))
@@ -105,7 +120,7 @@ class BaiscEnvironment:
                                    [0, 0, 0.76],  # StartPosition
                                    p.getQuaternionFromEuler([0, 0, 0]),  # StartOrientation
                                    useFixedBase=True,
-                                   flags=p.URDF_USE_INERTIA_FROM_FILE)
+                                   flags=flags)
             self.joints, self.controlGripper, self.controlJoints =\
             setupPanda(p, self.robot_id, gripper_type)
             self.eef_id = 11 #8 # ee_link
@@ -129,12 +144,51 @@ class BaiscEnvironment:
 
 
 
-        self.resetRobot()
+        self.resetRobot(gripper_type)
         self.ee_pp   = p.getLinkState(self.robot_id,self.eef_id)[0]
         self.ee_orn  = p.getEulerFromQuaternion(p.getLinkState(self.robot_id,self.eef_id)[1])   
         # self.cameraPos = p.multiplyTransforms(self.ee_pp,p.getLinkState(self.robot_id,self.eef_id)[1],[0,0,0.1],p.getQuaternionFromEuler([0,0,0]))
         self.updateBackgroundImage(0)
+
+        self.objects = YcbObjects('objects/ycb_objects',
+                            mod_orn=['ChipsCan', 'MustardBottle', 'TomatoSoupCan'],
+                            mod_stiffness=['Strawberry'])
+        
     
+    def drawCircle(self,center, radius,color = [0,1,1], thickness = 5):
+        nPoint = 25
+        for i in range(nPoint+1):
+            p1 = [ center[0]+radius*np.sin(i*2*np.pi/nPoint), center[1]+radius*np.cos(i*2*np.pi/nPoint), 0]
+            j  = i+1
+            p2 = [center[0]+radius*np.sin(j*2*np.pi/nPoint), center[1]+radius*np.cos(j*2*np.pi/nPoint), 0]
+            p.addUserDebugLine(p1,p2, color , thickness)
+            # p.addUserDebugLine([center[0],center[1],0], [center[0]+radius*np.sin(i*2*np.pi/10),center[1]+radius*np.cos(i*2*np.pi/10),0], [1,0,1], 5)
+            
+    def drawRectangle(self,A, B,C,D,color = [0,1,1], thickness = 5):
+        p.addUserDebugLine(A,B, color , thickness)
+        p.addUserDebugLine(B,C, color , thickness)
+        p.addUserDebugLine(C,D, color , thickness)
+        p.addUserDebugLine(D,A, color , thickness)
+    
+    def drawRectangle(self,origin, w,h,color = [0,1,1], thickness = 5):
+        A = origin
+        B = A + np.array([w,0,0])
+        C = B + np.array([0,h,0])
+        D = C - np.array([w,0,0])
+
+        p.addUserDebugLine(A,B , color , thickness)
+        p.addUserDebugLine(B,C, color , thickness)
+        p.addUserDebugLine(C,D, color , thickness)
+        p.addUserDebugLine(D,A, color , thickness)
+            
+    # def isOnTable(self,pos):
+    #     if (pos[0] >= self.tableOrigin[0] and pos[0] <= self.tableOrigin[0]+self.tableWidth and \
+    #         pos[1] >= self.tableOrigin[1] and pos[1] <= self.tableOrigin[1]+self.tableHeight):
+    #         return True
+    #     else:
+    #         return False
+
+
 
     def stepSimulation(self):
         """
@@ -176,7 +230,7 @@ class BaiscEnvironment:
         for g in grasps:
             x, y, z, yaw, opening_len, obj_height = g
             opening_len = np.clip(opening_len,0,0.04)
-            # yaw = yaw-np.pi/2
+            yaw = yaw-np.pi/2
             lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=5))
             lineIDs.append(p.addUserDebugLine([x, y, z], [x+(opening_len*np.cos(yaw)), y+(opening_len*np.sin(yaw)), z],color, lineWidth=5))
             lineIDs.append(p.addUserDebugLine([x, y, z], [x-(opening_len*np.cos(yaw)), y-(opening_len*np.sin(yaw)), z],color, lineWidth=5))
@@ -250,10 +304,12 @@ class BaiscEnvironment:
             print('Warning: Not still after MAX_WAIT_EPOCHS = %d.' %
                   max_wait_epochs)
 
-    def resetRobot(self):
+    def resetRobot(self,gripperType):
 
         if self.robotType == "UR5":
-            user_parameters = (0, -1.544, 1.54, -1.54,-1.570, 0.000, 0.085)
+            # user_parameters = (0, -1.544, 1.54, -1.54,-1.570, 0.000, 0.085)
+            user_parameters = (0, -1.544, 1.54, -1.54,-1.570, 0.000, (0.085 if gripperType == "85" else 0.3))
+            
         
         elif self.robotType == "Panda":
             user_parameters = (0.98, 0.458, 0.31, -2.24, -0.30+np.pi/2, 2.66, 2.32, 0.02, 0.02)
@@ -270,9 +326,10 @@ class BaiscEnvironment:
                                         targetPosition=user_parameters[i], force=joint.maxForce,
                                         maxVelocity=joint.maxVelocity)
                 self.stepSimulation()
-                
-            self.controlGripper(controlMode=p.POSITION_CONTROL, targetPosition=0.085)
-            self.stepSimulation()
+        
+                    
+        self.controlGripper(controlMode=p.POSITION_CONTROL, targetPosition=(0.085 if gripperType == "85" else 0.5))
+        self.stepSimulation()
         
 
 
@@ -364,11 +421,12 @@ class BaiscEnvironment:
 
     def moveGripper(self, gripper_opening_length: float, step: int = 1):
 
+        
         gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)
-        gripper_opening_angle = 0.715 - math.asin((gripper_opening_length - 0.010) / 0.1143)  # angle calculation
-            
+        # gripper_opening_angle = 0.715 - np.clip()  # angle calculation
+    
         for _ in range(step):
-            self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_angle)
+            self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_length)
 
             self.stepSimulation()
 
@@ -457,6 +515,10 @@ class BaiscEnvironment:
         for _ in range(200):
             p.stepSimulation()
 
+        return obj_id
+
+
+            
     def createTempBox(self, width, no):
         box_width = width
         box_height = 0.1
@@ -626,7 +688,6 @@ class BaiscEnvironment:
         p.removeUserDebugItem(camLinez)
     
     def getEEState(self):
-
         return p.getLinkState(self.robot_id,self.eef_id)
         
 

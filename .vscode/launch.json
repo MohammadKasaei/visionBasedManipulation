@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: BasicGym",
+            "type": "python",
+            "request": "launch",
+            "module": "DRL.basicGym"
+        },
+        {
             "name": "Python: DataSetGenerator",
             "type": "python",
             "request": "launch",
@@ -28,6 +34,12 @@
             "type": "python",
             "request": "launch",
             "module": "demos.basicDemo"
+        },
+        {
+            "name": "Python: BaiscDemoYCB",
+            "type": "python",
+            "request": "launch",
+            "module": "demos.basicDemoYCB"
         }
     ]
 }
