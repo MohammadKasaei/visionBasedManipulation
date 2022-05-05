@@ -1,0 +1,3 @@
+YcbGelatinBox:7
+YcbCrackerBox:8
+YcbChipsCan:12

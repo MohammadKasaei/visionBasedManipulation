@@ -1,0 +1,3 @@
+YcbBanana:8
+YcbTomatoSoupCan:7
+YcbPottedMeatCan:6

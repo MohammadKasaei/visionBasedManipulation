@@ -1,0 +1,3 @@
+YcbScissors:8
+YcbChipsCan:7
+YcbStrawberry:6

@@ -1,0 +1,3 @@
+YcbHammer:7
+YcbStrawberry:8
+YcbGelatinBox:12

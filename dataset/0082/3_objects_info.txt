@@ -1,0 +1,3 @@
+YcbChipsCan:8
+YcbTennisBall:6
+YcbBanana:9

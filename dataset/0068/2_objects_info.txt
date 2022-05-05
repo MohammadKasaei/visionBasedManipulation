@@ -1,0 +1,2 @@
+YcbPear:10
+YcbTennisBall:9

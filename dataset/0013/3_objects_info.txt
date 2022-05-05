@@ -1,0 +1,3 @@
+YcbMustardBottle:8
+YcbMediumClamp:7
+YcbTomatoSoupCan:6

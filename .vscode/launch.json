@@ -4,6 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    
+
         {
             "name": "Python: BasicGym",
             "type": "python",
@@ -14,7 +16,7 @@
             "name": "Python: DataSetGenerator",
             "type": "python",
             "request": "launch",
-            "module": "demos.testDataSetGenerator"
+            "module": "demos.datasetGenerator"
         },
         {
             "name": "Python: GraspTest",

@@ -1,0 +1,3 @@
+YcbPear:8
+YcbScissors:7
+YcbPottedMeatCan:6

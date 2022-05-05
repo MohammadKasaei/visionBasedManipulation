@@ -1,0 +1,3 @@
+YcbMustardBottle:8
+YcbScissors:6
+YcbBanana:9

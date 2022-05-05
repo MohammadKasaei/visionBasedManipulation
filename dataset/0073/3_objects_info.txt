@@ -1,0 +1,3 @@
+YcbMustardBottle:8
+YcbPowerDrill:12
+YcbTennisBall:11

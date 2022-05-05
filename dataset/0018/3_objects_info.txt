@@ -1,0 +1,3 @@
+YcbTomatoSoupCan:7
+YcbPottedMeatCan:8
+YcbMustardBottle:12

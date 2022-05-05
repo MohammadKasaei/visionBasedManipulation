@@ -1,0 +1,3 @@
+YcbTennisBall:8
+YcbPear:7
+YcbCrackerBox:6

@@ -659,7 +659,7 @@ class BaiscEnvironment:
             roll   = random.uniform(0, np.pi)
             orn    = p.getQuaternionFromEuler([roll, 0, 0])
             pos    = [r_x, r_y, 1]
-            obj_id = p.loadURDF("objects/ycb_objects/YcbTomatoSoupCan/model.urdf", pos, orn)
+            obj_id = p.loadURDF("objects/ycb_objects/YcbTube/model.urdf", pos, orn)
             
             self.dummySimulationSteps(5)
         
@@ -1466,4 +1466,3 @@ class BaiscVGNEnvironment:
 
     def close(self):
         p.disconnect(self.physicsClient)
-

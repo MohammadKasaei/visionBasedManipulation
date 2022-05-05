@@ -1,0 +1,3 @@
+YcbChipsCan:8
+YcbMediumClamp:11
+YcbTomatoSoupCan:7

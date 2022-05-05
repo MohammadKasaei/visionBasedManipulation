@@ -1,0 +1,3 @@
+YcbStrawberry:7
+YcbPear:8
+YcbTennisBall:12

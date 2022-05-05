@@ -1,0 +1,3 @@
+YcbPottedMeatCan:8
+YcbPowerDrill:7
+YcbCrackerBox:6

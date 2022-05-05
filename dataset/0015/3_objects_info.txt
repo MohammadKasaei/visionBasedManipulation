@@ -1,0 +1,3 @@
+YcbBanana:8
+YcbPottedMeatCan:7
+YcbTube:6

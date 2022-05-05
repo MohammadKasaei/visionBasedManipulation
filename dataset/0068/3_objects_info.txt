@@ -1,0 +1,3 @@
+YcbPear:7
+YcbTennisBall:8
+YcbMediumClamp:12

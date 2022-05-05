@@ -289,8 +289,7 @@ class GraspGenerator:
 
         return robot_xyz[0][0], robot_xyz[0][1], robot_xyz[0][2], yaw, opening_length, obj_height
 
-    def predict(self, rgb, depth, n_grasps=1, show_output=False):
-
+    def predict(self, rgb, depth, n_grasps=1, show_output=False, min_distance=1, threshold_abs=0.6):
         max_val = np.max(depth)
         depth = depth * (255 / max_val)
         depth = np.clip((depth - depth.mean())/175, -1, 1)
@@ -341,6 +340,7 @@ class GraspGenerator:
         if show_output:
             #fig = plt.figure(figsize=(10, 10))
             im_bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            print(im_bgr.shape, depth.shape, q_img.shape, ang_img.shape, width_img.shape)
             plot = plot_results(self.fig,
                                 rgb_img=im_bgr,
                                 grasp_q_img=q_img,
@@ -356,7 +356,7 @@ class GraspGenerator:
             plot.savefig(save_name + '.png')
             plot.clf()
 
-        grasps = detect_grasps(q_img, ang_img, width_img=width_img, no_grasps=n_grasps)
+        grasps = detect_grasps(q_img, ang_img, width_img=width_img, no_grasps=n_grasps, min_distance=min_distance, threshold_abs=threshold_abs)
         return grasps, save_name
 
     def predict_grasp(self, rgb, depth, n_grasps=1, show_output=False):

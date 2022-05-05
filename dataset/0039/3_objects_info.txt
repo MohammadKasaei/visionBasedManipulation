@@ -1,0 +1,3 @@
+YcbTennisBall:8
+YcbGelatinBox:7
+YcbMediumClamp:6

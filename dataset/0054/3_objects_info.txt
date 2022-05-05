@@ -1,0 +1,3 @@
+YcbMediumClamp:7
+YcbChipsCan:8
+YcbPowerDrill:12

@@ -1,0 +1,3 @@
+YcbHammer:8
+YcbTennisBall:6
+YcbChipsCan:9

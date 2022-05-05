@@ -1,0 +1,3 @@
+YcbHammer:8
+YcbTomatoSoupCan:7
+YcbStrawberry:6

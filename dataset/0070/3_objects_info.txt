@@ -1,0 +1,3 @@
+YcbGelatinBox:7
+YcbTennisBall:8
+YcbBanana:12

@@ -1,0 +1,2 @@
+YcbChipsCan:10
+YcbMediumClamp:6

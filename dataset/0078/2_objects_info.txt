@@ -1,0 +1,2 @@
+YcbPottedMeatCan:10
+YcbChipsCan:7

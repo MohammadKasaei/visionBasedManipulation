@@ -1,0 +1,2 @@
+YcbMediumClamp:10
+YcbPottedMeatCan:6

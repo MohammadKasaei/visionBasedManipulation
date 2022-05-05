@@ -1,0 +1,3 @@
+YcbScissors:8
+YcbBanana:7
+YcbTomatoSoupCan:6

@@ -1,0 +1,2 @@
+YcbStrawberry:10
+YcbChipsCan:7

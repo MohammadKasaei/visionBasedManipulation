@@ -1,0 +1,3 @@
+YcbBanana:8
+YcbTennisBall:7
+YcbHammer:6

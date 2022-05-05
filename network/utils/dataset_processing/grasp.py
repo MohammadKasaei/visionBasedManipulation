@@ -332,7 +332,7 @@ class GraspRectangle:
         :param color: matplotlib color code (optional)
         """
         points = np.vstack((self.points, self.points[0]))
-        ax.plot(points[:, 1], points[:, 0], color=color, lineWidth=3)
+        ax.plot(points[:, 1], points[:, 0], color=color)
         ax.plot(self.center[1], self.center[0], 'o')
         ax.legend(['score: {0:.2f}'.format(q)])
 
@@ -423,7 +423,7 @@ class Grasp:
             self.width * scale)
 
 
-def detect_grasps(q_img, ang_img, width_img=None, no_grasps=1):
+def detect_grasps(q_img, ang_img, width_img=None, no_grasps=1, min_distance=1, threshold_abs=0.6):
     """
     Detect grasps in a network output.
     :param q_img: Q image network output
@@ -434,7 +434,7 @@ def detect_grasps(q_img, ang_img, width_img=None, no_grasps=1):
     """
     
     #Origional min distance=10, threshold abs=0.02
-    local_max = peak_local_max(q_img, min_distance=1, threshold_abs=0.6, num_peaks=no_grasps)
+    local_max = peak_local_max(q_img, min_distance=min_distance, threshold_abs=threshold_abs, num_peaks=no_grasps)
 
     grasps = []
     for grasp_point_array in local_max:

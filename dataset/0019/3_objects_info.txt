@@ -1,0 +1,3 @@
+YcbMasterChefCan:8
+YcbPear:7
+YcbMustardBottle:6

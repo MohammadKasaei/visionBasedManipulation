@@ -1,0 +1,2 @@
+YcbMustardBottle:10
+YcbScissors:12

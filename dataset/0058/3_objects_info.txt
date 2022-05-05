@@ -1,0 +1,3 @@
+YcbPottedMeatCan:7
+YcbTomatoSoupCan:8
+YcbTennisBall:12

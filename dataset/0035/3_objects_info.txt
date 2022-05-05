@@ -1,0 +1,3 @@
+YcbBanana:8
+YcbMediumClamp:7
+YcbPottedMeatCan:6

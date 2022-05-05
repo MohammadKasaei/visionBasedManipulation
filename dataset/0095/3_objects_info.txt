@@ -1,0 +1,3 @@
+YcbTomatoSoupCan:8
+YcbPottedMeatCan:9
+YcbMediumClamp:12

@@ -1,0 +1,3 @@
+YcbPowerDrill:8
+YcbMustardBottle:7
+YcbScissors:6

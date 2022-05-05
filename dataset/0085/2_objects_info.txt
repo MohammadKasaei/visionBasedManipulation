@@ -1,0 +1,2 @@
+YcbTomatoSoupCan:10
+YcbMediumClamp:11

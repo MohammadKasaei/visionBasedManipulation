@@ -1,0 +1,2 @@
+YcbCrackerBox:10
+YcbTomatoSoupCan:9
