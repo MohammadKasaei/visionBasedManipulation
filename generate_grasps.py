@@ -106,10 +106,75 @@ if __name__ == "__main__":
             #     print("hexagon")
             if len(shape_results[0]) <= 6:
                 print("Detect specific shape")
-                edge_pts_y, edge_pts_x = np.nonzero(edges)
-                edge_pts = np.concatenate
-                h_skel = np.mean()
+                num_pts = shape_results[0].shape[0]
+                last_slope = 0
+                for i in range(num_pts):
+                    if i == (num_pts -1):
+                        next_i = 0
+                        pts_1 = shape_results[0][i].reshape(2)
+                        pts_2 = shape_results[0][next_i].reshape(2)
+                    else:
+                        next_i = i+1
+                        pts_1 = shape_results[0][i].reshape(2)
+                        pts_2 = shape_results[0][next_i].reshape(2)
+                    
+                    cv2.circle(rgb_c, (pts_1[0], pts_1[1]), 1, (255,0,0), 3)
+                    cv2.putText(rgb_c, "{}".format(i), (pts_1[0], pts_1[1]), cv2.FONT_HERSHEY_SIMPLEX, 
+                                1, (0,0,255), 1, cv2.LINE_AA)
+                    if i == 0:
+                        print("First point")
+                        if (pts_2[0] - pts_1[0]) == 0:
+                            slope = 9999
+                            last_slope = 9999
+                        else:
+                            slope = (pts_2[1] - pts_1[1]) / (pts_2[0] - pts_1[0])
+                            last_slope = slope
+                            print("idx: {}-{}, slope: {}".format(i, next_i, slope))
+                            cv2.putText(rgb_c, "idx: {}-{}, slope: {}".format(i, next_i, slope), (pts_1[0], pts_1[1]), cv2.FONT_HERSHEY_SIMPLEX, 
+                                0.3, (255,0,0), 1, cv2.LINE_AA)
+                    else:
+                        if (pts_2[0] - pts_1[0]) == 0:
+                            slope = 9999
+                            if abs(last_slope) < 0.3:
+                                print("Find orthogonal lines")
+                        else:
+                            slope = (pts_2[1] - pts_1[1]) / (pts_2[0] - pts_1[0])
+                            tmp = last_slope * slope
+                            last_slope = slope
 
+                            print("idx: {}-{}, slope: {}".format(i, next_i, slope))
+                            cv2.putText(rgb_c, "idx: {}-{}, slope: {}".format(i, next_i, slope), (pts_1[0], pts_1[1]), cv2.FONT_HERSHEY_SIMPLEX, 
+                                0.3, (255,0,0), 1, cv2.LINE_AA)
+
+                            if abs(abs(tmp)-1) < 0.15:
+                                print("Find orthogonal lines")
+                            
+                                norm = [slope, last_slope]
+                                break
+                
+                # With found two axis
+                edge_pts_y, edge_pts_x = np.nonzero(edges)
+                center_y = np.mean(edge_pts_y)
+                center_x = np.mean(edge_pts_x)
+
+                rects = []
+
+                for i in range(len(norm)):
+                    slope = norm[i]
+                    edge_y_pred   = norm*(edge_pts_x - center_x) + center_y
+                    edge_y_offset = np.absolute(edge_pts_y - edge_y_pred)
+                    min_idx = np.argmin(edge_y_offset)
+                    pair_edge_x, pair_edge_y = edge_pts_x[min_idx], edge_pts_y[min_idx]
+                    width = 2 * np.sqrt((pair_edge_x - center_x)*(pair_edge_x - center_x) + (pair_edge_y - center_y)*(pair_edge_y - center_y)) + 10
+                    anlge_of_grasp = np.arctan(norm[1-i]) / np.pi * 180
+                    
+                    # uniformly sample from two orthogonal axis
+
+
+
+                cv2.circle(rgb_c, (int(center_x), int(center_y)), 1, (255,0,0), 3)
+
+                cv2.imwrite("test_pts_{}.png".format(idx), rgb_c)
             else:
                 print("other shape")
 

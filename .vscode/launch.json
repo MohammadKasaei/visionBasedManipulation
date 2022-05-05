@@ -4,6 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+
     
 
         {
@@ -42,6 +44,12 @@
             "type": "python",
             "request": "launch",
             "module": "demos.basicDemoYCB"
+        },
+        {
+            "name": "Python: test_dataset",
+            "type": "python",
+            "request": "launch",
+            "module": "generate_grasps"
         }
     ]
 }
