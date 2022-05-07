@@ -2,6 +2,7 @@ from dis import dis
 import time
 
 from cv2 import getTrackbarPos
+from gym import make
 from environment.datasetEnv import DatasetEnvironment
 from environment.camera.camera import Camera
 from graspGenerator.grasp_generator import GraspGenerator
@@ -761,9 +762,47 @@ def grasp_to_robot_frame(camera, grasp, depth, img_width):
     return grasp_x, grasp_y, grasp_z, gripper_width, obj_height, theta, target_angle
     
 
+def preprocess_segment(seg, obj_info, obj_list):
+    all_mask = np.zeros_like(seg)
+    for (obj_name, obj_idx) in obj_info:
+        map_idx = obj_list[obj_name]
+        mask = (seg == obj_idx).astype('uint8')
+        mask = mask * map_idx
+
+        all_mask += mask
+    
+    return all_mask
+    
+
+
+    
+
+
 
 
 if __name__ == '__main__':
+
+    obj_list = {
+        "YcbBanana": 1,
+        "YcbChipsCan": 2,
+        "YcbCrackerBox": 3,
+        "YcbFoamBrick": 4,
+        "YcbGelatinBox": 5,
+        "YcbHammer": 6,
+        "YcbMasterChefCan": 7,
+        "YcbMediumClamp": 8,
+        "YcbMustardBottle": 9,
+        "YcbPear": 10,
+        "YcbPottedMeatCan": 11,
+        "YcbPowerDrill": 12,
+        "YcbScissors": 13,
+        "YcbStrawberry": 14,
+        "YcbTennisBall": 15,
+        "YcbTomatoSoupCan": 16,
+        "YcbTube": 17
+    }
+
+
     from tqdm import tqdm
   
     # env = BaiscEnvironment(GUI = True,robotType ="Panda",img_size= IMG_SIZE)
@@ -802,54 +841,36 @@ if __name__ == '__main__':
 
         data_dict = generate_grasp_candidates(rgb, seg, obj_info=obj_info, prefix="{}".format(idx), save_results=True)
 
+        seg_mask = preprocess_segment(seg, obj_info, obj_list)
 
         for obj in data_dict.keys():
             print("Current attempt: {}, {} grasp candidates in total".format(obj, len(data_dict[obj])))
             grasp_rects = data_dict[obj]
             valid_rects = []
             for rect in grasp_rects:
-                # x, y, z, yaw, opening_len, obj_height = grasp_to_robot_frame(
-                #     env.camera, rect, depth, depth_radius=2, img_width=544
-                # )
+                
                 grasp_x, grasp_y, grasp_z, gripper_width, obj_height, theta, target_angle = grasp_to_robot_frame(env.camera, rect, depth, 544)
                 # print(x, y, z, yaw, opening_len, obj_height)
 
                 grasp_flag = gc.graspAttempt([grasp_x, grasp_y, grasp_z, gripper_width, obj_height, theta, target_angle])
-                print(grasp_flag)
                 if grasp_flag:
                     valid_rects.append(rect)
 
                 env.reset_all_obj()
+            
+            data_dict[obj] = valid_rects
         
         env.removeAllObject()
-                
-                
-        env.removeAllObject()
         time.sleep(1)
-            
-            # print("Get objects info: ")
-            # with open("./dataset/{:04d}/{}_objects_info.txt".format(idx, num), 'w') as f:
-            #     for obj in obj_info:
-            #         data = "{}:{}\n".format(obj[0], obj[1])
-            #         f.write(data) 
 
-            # print("Writing images (rgb, depth, seg)")
-            # rgb, depth, seg = env.captureImage(removeBackground=0, getSegment=True)
+        cv2.imwrite("./dataset/{:04d}/rgb.png".format(idx), rgb)
+        cv2.imwrite("./dataset/{:04d}/depth.png".format(idx), depth)
+        cv2.imwrite("./dataset/{:04d}/seg.png".format(idx), seg_mask)
 
-            # # grasps, save_name = gg.predict(rgb, depth, n_grasps=20, show_output=True, min_distance=20, threshold_abs=0.5)
-            # print(rgb.shape, depth.shape, seg.shape)
-            # depth = (depth * 1000).astype(np.uint8)
-            # cv2.imwrite("./dataset/{:04d}/{}_objects_rgb.png".format(idx, num), rgb)
-            # cv2.imwrite("./dataset/{:04d}/{}_objects_depth.png".format(idx, num), depth)
-            # cv2.imwrite("./dataset/{:04d}/{}_objects_seg.png".format(idx, num), seg)
-
-            # # print("Write predicted grasps")
-            # # with open("./dataset/{:04d}/{}_objects_grasp.txt".format(idx, num), 'w') as f:
-            # #     for grasp in grasps:
-            # #         data = "{},{},{},{},{}\n".format(grasp.center[0], grasp.center[1], grasp.angle, grasp.length, grasp.quality)
-            # #         f.write(data)
-
-            # env.removeAllObject()
-            # time.sleep(1)
-  
-
+        for obj in data_dict.keys():
+            grasps = data_dict[obj]
+            with open("./dataset/{:04d}/{}_grasps.txt".format(idx, obj), 'w') as f:
+                for grasp in grasps:
+                    # center_x, center_y, width, length, theta
+                    data = "{},{},{},{},{}\n".format(grasp[0], grasp[1], grasp[2], grasp[3], grasp[4])
+                    f.write(data)
