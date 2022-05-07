@@ -94,7 +94,7 @@ class DatasetEnvironment:
             self.ee_id  = 7
             self.f1_id  = 13 #12
             self.f2_id  = 17 #17
-            self.finger_length = 0.25 # should be changed based on gripper
+            self.finger_length = 0.20 # should be changed based on gripper
 
 
             # Add force sensors
@@ -229,7 +229,7 @@ class DatasetEnvironment:
         for g in grasps:
             x, y, z, yaw, opening_len, obj_height = g
             opening_len = np.clip(opening_len,0,0.04)
-            yaw = -yaw
+            yaw = np.pi - yaw
             lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=5))
             # lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=5))
             # lineIDs.append(p.addUserDebugLine([x, y, z], [x, y, z+0.15],color, lineWidth=5))
@@ -429,14 +429,22 @@ class DatasetEnvironment:
 
     def moveGripper(self, gripper_opening_length: float, step: int = 1):
 
-        
+        # print(gripper_opening_length)
+        # gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)
+        # # gripper_opening_angle = 0.715 - np.clip()  # angle calculation
+
+        # for _ in range(step):
+        #     self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_length)
+
+        #     self.stepSimulation()
         gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)
-        # gripper_opening_angle = 0.715 - np.clip()  # angle calculation
-    
+        gripper_opening_angle = 0.715 - math.asin((gripper_opening_length - 0.010) / 0.1143)  # angle calculation
+            
         for _ in range(step):
-            self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_length)
+            self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_angle)
 
             self.stepSimulation()
+        
 
     def calcZOffset(self, gripper_opening_length: float):
         gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)

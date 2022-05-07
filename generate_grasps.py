@@ -43,7 +43,7 @@ NOTES:
 
 
 if __name__ == "__main__":
-    idx = 16
+    idx = 5
     num_obj = 1
     rgb = cv2.imread("./dataset/{:04d}/{}_objects_rgb.png".format(idx, num_obj), cv2.COLOR_BGR2RGB)
     depth = cv2.imread("./dataset/{:04d}/{}_objects_depth.png".format(idx, num_obj), cv2.IMREAD_UNCHANGED)
@@ -140,17 +140,18 @@ if __name__ == "__main__":
                         else:
                             slope = (pts_2[1] - pts_1[1]) / (pts_2[0] - pts_1[0])
                             tmp = last_slope * slope
+                            if abs(abs(tmp)-1) < 0.15:
+                                print("Find orthogonal lines")
+                            
+                                norm = [slope, last_slope]
+                                break
                             last_slope = slope
 
                             print("idx: {}-{}, slope: {}".format(i, next_i, slope))
                             cv2.putText(rgb_c, "idx: {}-{}, slope: {}".format(i, next_i, slope), (pts_1[0], pts_1[1]), cv2.FONT_HERSHEY_SIMPLEX, 
                                 0.3, (255,0,0), 1, cv2.LINE_AA)
 
-                            if abs(abs(tmp)-1) < 0.15:
-                                print("Find orthogonal lines")
                             
-                                norm = [slope, last_slope]
-                                break
                 
                 # With found two axis
                 edge_pts_y, edge_pts_x = np.nonzero(edges)
@@ -160,21 +161,56 @@ if __name__ == "__main__":
                 rects = []
 
                 for i in range(len(norm)):
+                    print(norm)
+                    # Slope: slope of current axis
+                    # Grasp rectangles should be arthogonal to the current axis
                     slope = norm[i]
-                    edge_y_pred   = norm*(edge_pts_x - center_x) + center_y
+                    edge_y_pred   = slope*(edge_pts_x - center_x) + center_y
+                    edge_y_offset = np.absolute(edge_pts_y - edge_y_pred)
+                    min_idx = np.argmin(edge_y_offset)
+
+                    # Get in point in edge
+                    pair_edge_x, pair_edge_y = edge_pts_x[min_idx], edge_pts_y[min_idx]
+                    delta_x = abs(center_x-pair_edge_x) 
+                    # Calculate width
+                    
+
+                    cv2.line(rgb_c, (int(center_x), int(center_y)), (int(pair_edge_x), int(pair_edge_y)), (0,0,255), 2)
+
+                    if pair_edge_x < center_x:
+                        sample_range = [pair_edge_x, center_x+delta_x]
+                    else:
+                        sample_range = [center_x-delta_x, pair_edge_x]
+
+                    edge_y_pred   = norm[1-i]*(edge_pts_x - center_x) + center_y
                     edge_y_offset = np.absolute(edge_pts_y - edge_y_pred)
                     min_idx = np.argmin(edge_y_offset)
                     pair_edge_x, pair_edge_y = edge_pts_x[min_idx], edge_pts_y[min_idx]
-                    width = 2 * np.sqrt((pair_edge_x - center_x)*(pair_edge_x - center_x) + (pair_edge_y - center_y)*(pair_edge_y - center_y)) + 10
-                    anlge_of_grasp = np.arctan(norm[1-i]) / np.pi * 180
-                    
+                    width = 2 * np.sqrt((pair_edge_x - center_x)*(pair_edge_x - center_x) + (pair_edge_y - center_y)*(pair_edge_y - center_y)) + 20
+
+                    # Calculate angle
+                    angle_of_grasp = np.arctan(norm[1-i]) / np.pi * 180
                     # uniformly sample from two orthogonal axis
 
+                    for k in range(int(sample_range[0]+5),int(sample_range[1]-5), 3):
+                        # Avoid grasp candidates with extreme width
+                        if width < 300:
+                            cx = k
+                            cy = slope*(cx - center_x) + center_y
+                            rects.append([cx, cy, width, 30, angle_of_grasp])
+
+
+                for rect in rects:
+                    center_x, center_y, width, height, theta = rect
+                    box = ((int(center_x), int(center_y)), (width, height), theta)
+                    box = cv2.boxPoints(box)
+                    box = np.int0(box)
+                    cv2.drawContours(rgb_c, [box], 0, [255,0,0], 2)
 
 
                 cv2.circle(rgb_c, (int(center_x), int(center_y)), 1, (255,0,0), 3)
 
-                cv2.imwrite("test_pts_{}.png".format(idx), rgb_c)
+                cv2.imwrite("test_rectangle_{}.png".format(idx), rgb_c)
             else:
                 print("other shape")
 
@@ -191,6 +227,20 @@ if __name__ == "__main__":
 
                 if dist_std < 5:
                     print("circle")
+                    radius = np.mean(dist)
+                    rects = []
+                    for k in range(0, 180, 30):
+                        print(k)
+                        rects.append([center_x, center_y, radius*2+20, 30, k])
+                    
+                    for rect in rects:
+                        center_x, center_y, width, height, theta = rect
+                        box = ((int(center_x), int(center_y)), (width, height), theta)
+                        box = cv2.boxPoints(box)
+                        box = np.int0(box)
+                        cv2.drawContours(rgb_c, [box], 0, [255,0,0], 2)
+                    cv2.imwrite("test_circle_{}.png".format(idx), rgb_c)
+
                 else:
                     print("other shape")
 
