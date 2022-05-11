@@ -1,0 +1,1 @@
+{"ctrlMethod": 1, "num_cpu": 16, "max_epc": 5000000, "TestOrTrain": "Test", "MasterCtrlGain": 0.8, "AniPrevTime": -1, "maximized": 0}

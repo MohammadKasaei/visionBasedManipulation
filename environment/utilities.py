@@ -1,3 +1,4 @@
+from turtle import pos
 import pybullet as p
 from collections import namedtuple
 from attrdict import AttrDict
@@ -55,6 +56,7 @@ def setupPanda(p, robotID, gripperType):
             for name in children:
                 child = children[name]
                 childPose = pose * mul[child.name]
+                # print(name, childPose)
                 p.setJointMotorControl2(robotID, child.id, controlMode, targetPosition=childPose,
                                         force=child.maxForce, maxVelocity=child.maxVelocity)
         else:

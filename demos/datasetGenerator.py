@@ -101,6 +101,49 @@ class GraspControl():
             return   p.getQuaternionFromEuler([0, np.pi/2, self.gOrn-np.pi/2]) 
         elif self.env.robotType == "Panda":
             return   p.getQuaternionFromEuler([-np.pi, 0, self.gOrn-np.pi/2]) 
+
+    
+    def testGripper(self, target):
+        self.gState = "GoHome"
+        self.cnt = 0
+
+        
+        for i in range(50000):
+            eeState   = self.env.getEEState()
+            if self.gState  == "GoHome":
+                targetPos    = self.env.TARGET_ZONE_POS[:]
+                targetPos[2] = self.GRIPPER_MOVING_HEIGHT
+                targetOrn    = p.getQuaternionFromEuler(self.GRIPPER_INIT_ORN)
+                self.env.moveEE(targetPos, targetOrn)
+                dist = np.linalg.norm(np.array(targetPos)-eeState[0])
+                if (dist<0.3):
+                    if (self.cnt>10):
+                        self.updateState("OpenGripper")
+                        time.sleep(3)
+                    else:
+                        self.cnt += 1
+                else:
+                    self.cnt = 0
+            elif self.gState == "OpenGripper":
+                self.env.moveGripper(target)
+                time.sleep(0.025)
+                self.cnt += 1
+                if self.cnt > 100:
+                    self.updateState("CloseGripper")
+                    self.cnt = 0
+            elif self.gState == "CloseGripper":
+                self.env.moveGripper(0.01)
+                time.sleep(0.025)
+                self.cnt += 1
+                if self.cnt > 100:
+                    self.updateState("CloseGripper")
+                    self.cnt = 0
+                    time.sleep(3)
+                    break
+                
+                
+            
+
         
     
     def graspAttempt(self, target):
@@ -732,7 +775,6 @@ def grasp_to_robot_frame(camera, grasp, depth, img_width):
     view_matrix = np.asarray(camera.view_matrix).reshape([4,4], order="F")
     tran_pix_world = np.linalg.inv(np.matmul(proj_matrix, view_matrix))
 
-
     # create a grid with pixel coordinates and depth values
     y, x = np.mgrid[-1:1:2 / img_width, -1:1:2 / img_width]
     y *= -1.
@@ -814,7 +856,7 @@ if __name__ == '__main__':
     
     pbar = tqdm(range(100))
 
-    gc = GraspControl(env)
+    gc = GraspControl(env)        
 
     # Data Collection
     # 1. Put objects in the table
@@ -847,10 +889,24 @@ if __name__ == '__main__':
             print("Current attempt: {}, {} grasp candidates in total".format(obj, len(data_dict[obj])))
             grasp_rects = data_dict[obj]
             valid_rects = []
+
             for rect in grasp_rects:
-                
+                rgb_c = np.copy(rgb)
+                center_x, center_y, width, height, theta = rect
+                box = ((int(center_x), int(center_y)), (width, height), theta / np.pi * 180)
+                box = cv2.boxPoints(box)
+                box = np.int0(box)
+                cv2.drawContours(rgb_c, [box], 0, [255,0,0], 2)
+
+                cv2.imshow("Current evaluation", rgb_c)
+                cv2.waitKey(1)
+
                 grasp_x, grasp_y, grasp_z, gripper_width, obj_height, theta, target_angle = grasp_to_robot_frame(env.camera, rect, depth, 544)
                 # print(x, y, z, yaw, opening_len, obj_height)
+
+                # gripper_width = (gripper_width / 0.9)*0.1
+
+                # gc.testGripper(gripper_width)
 
                 grasp_flag = gc.graspAttempt([grasp_x, grasp_y, grasp_z, gripper_width, obj_height, theta, target_angle])
                 if grasp_flag:
@@ -859,18 +915,20 @@ if __name__ == '__main__':
                 env.reset_all_obj()
             
             data_dict[obj] = valid_rects
+
+            cv2.imwrite("./dataset/{:04d}/rgb.png".format(idx), rgb)
+            cv2.imwrite("./dataset/{:04d}/depth.png".format(idx), depth)
+            cv2.imwrite("./dataset/{:04d}/seg.png".format(idx), seg_mask)
+
+            for obj in data_dict.keys():
+                grasps = data_dict[obj]
+                with open("./dataset/{:04d}/{}_grasps.txt".format(idx, obj), 'w') as f:
+                    for grasp in grasps:
+                        # center_x, center_y, width, length, theta
+                        data = "{},{},{},{},{}\n".format(grasp[0], grasp[1], grasp[2], grasp[3], grasp[4])
+                        f.write(data)
         
         env.removeAllObject()
         time.sleep(1)
 
-        cv2.imwrite("./dataset/{:04d}/rgb.png".format(idx), rgb)
-        cv2.imwrite("./dataset/{:04d}/depth.png".format(idx), depth)
-        cv2.imwrite("./dataset/{:04d}/seg.png".format(idx), seg_mask)
-
-        for obj in data_dict.keys():
-            grasps = data_dict[obj]
-            with open("./dataset/{:04d}/{}_grasps.txt".format(idx, obj), 'w') as f:
-                for grasp in grasps:
-                    # center_x, center_y, width, length, theta
-                    data = "{},{},{},{},{}\n".format(grasp[0], grasp[1], grasp[2], grasp[3], grasp[4])
-                    f.write(data)
+        

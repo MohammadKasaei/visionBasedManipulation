@@ -107,7 +107,7 @@ class DatasetEnvironment:
       
             # Setup some Limit
             if (gripper_type == "85"):
-                self.gripper_open_limit = (0.0, 0.1)
+                self.gripper_open_limit = (0.0, 0.2)
             else:
                 self.gripper_open_limit = (0.2, 0.8)
                 
@@ -437,8 +437,14 @@ class DatasetEnvironment:
         #     self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_length)
 
         #     self.stepSimulation()
+
+        print("Input gripper length: ", gripper_opening_length)
+        print('Limitation of gripper length: ', *self.gripper_open_limit)
         gripper_opening_length = np.clip(gripper_opening_length, *self.gripper_open_limit)
+        print("After gripper length: ", gripper_opening_length)
         gripper_opening_angle = 0.715 - math.asin((gripper_opening_length - 0.010) / 0.1143)  # angle calculation
+
+        # gripper_opening_angle = gripper_opening_length
             
         for _ in range(step):
             self.controlGripper(controlMode=p.POSITION_CONTROL,targetPosition=gripper_opening_angle)
