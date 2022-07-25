@@ -106,9 +106,9 @@ class GraspControl():
         
         if self.env.robotType == "UR5":
             # return   p.getQuaternionFromEuler([self.gOrn, np.pi/2, 0.0]) 
-            return   p.getQuaternionFromEuler([0, np.pi/2, self.gOrn-np.pi/2]) 
+            return   p.getQuaternionFromEuler([0, np.pi/2, self.gOrn]) 
         elif self.env.robotType == "Panda":
-            return   p.getQuaternionFromEuler([-np.pi, 0, self.gOrn-np.pi/2]) 
+            return   p.getQuaternionFromEuler([-np.pi, 0, self.gOrn]) 
             
         
     def graspStateMachine(self):
